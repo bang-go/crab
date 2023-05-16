@@ -9,9 +9,9 @@ import (
 )
 import "gorm.io/driver/mysql"
 
-type DsnConfig driver.Config //DSN config
-type SqlConfig mysql.Config
-type GormConfig gorm.Config
+type DsnConfig = driver.Config //DSN config
+type SqlConfig = mysql.Config
+type GormConfig = gorm.Config
 type Client = gorm.DB
 type PoolConfig struct {
 	MaxIdleConns    int           //最大空闲连接数,默认2
@@ -29,9 +29,8 @@ type Config struct {
 
 func New(conf *Config) (db *Client, err error) {
 	conf.setDsn()
-	ormConfig := gorm.Config(conf.Orm)
 	// DSN [username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]
-	db, err = gorm.Open(mysql.New(mysql.Config(conf.Sql)), &ormConfig)
+	db, err = gorm.Open(mysql.New(conf.Sql), &conf.Orm)
 	if err != nil {
 		return
 	}
@@ -46,8 +45,7 @@ func New(conf *Config) (db *Client, err error) {
 
 // 解析DSN CONFIG到字符串
 func (c *Config) setDsn() {
-	cf := driver.Config(c.Dsn)
-	c.Sql.DSN = cf.FormatDSN()
+	c.Sql.DSN = c.Dsn.FormatDSN()
 }
 
 // SetPool 设置数据池

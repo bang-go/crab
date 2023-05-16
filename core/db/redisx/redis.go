@@ -4,11 +4,12 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type Config redis.Options
+type Config = redis.Options
 type Client = redis.Client
 
+var Nil = redis.Nil
+
 func New(config Config) *Client {
-	conf := redis.Options(config)
-	client := redis.NewClient(&conf)
+	client := redis.NewClient(&config)
 	return client
 }
