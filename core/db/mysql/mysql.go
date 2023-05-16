@@ -12,6 +12,7 @@ import "gorm.io/driver/mysql"
 type DsnConfig driver.Config //DSN config
 type SqlConfig mysql.Config
 type GormConfig gorm.Config
+type Client = gorm.DB
 type PoolConfig struct {
 	MaxIdleConns    int           //最大空闲连接数,默认2
 	MaxOpenConns    int           //最大Open链接数,默认0 不限制
@@ -26,7 +27,7 @@ type Config struct {
 	Pool *PoolConfig
 }
 
-func New(conf *Config) (db *gorm.DB, err error) {
+func New(conf *Config) (db *Client, err error) {
 	conf.setDsn()
 	ormConfig := gorm.Config(conf.Orm)
 	// DSN [username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]
