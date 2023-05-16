@@ -20,7 +20,7 @@ type CmderWrapper struct {
 	conf *Config
 	cmd  *cobra.Command
 }
-type RunFunc func(args []string) error
+type RunFunc func(args []string)
 
 func New(conf *Config) Cmder {
 	return &CmderWrapper{
@@ -40,8 +40,8 @@ func NewWithRunFunc(conf *Config, fc RunFunc) Cmder {
 }
 
 func (c *CmderWrapper) SetRun(fc RunFunc) {
-	c.cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return fc(args)
+	c.cmd.Run = func(cmd *cobra.Command, args []string) {
+		fc(args)
 	}
 }
 

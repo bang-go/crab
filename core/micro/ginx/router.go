@@ -6,11 +6,11 @@ type RouterGroup interface {
 	RouterHandle(httpMethod, relativePath string, handlers ...gin.HandlerFunc)
 }
 
-type RouterGroupWrapper struct {
-	Group *gin.RouterGroup
+type routerGroupEntity struct {
+	group *gin.RouterGroup
 }
 
 // RouterHandle Handle 路由
-func (r *RouterGroupWrapper) RouterHandle(httpMethod, relativePath string, handlers ...gin.HandlerFunc) {
-	r.Group.Handle(httpMethod, relativePath, handlers...)
+func (r *routerGroupEntity) RouterHandle(httpMethod, relativePath string, handlers ...gin.HandlerFunc) {
+	r.group.Handle(httpMethod, relativePath, handlers...)
 }

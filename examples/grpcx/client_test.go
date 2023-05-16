@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/bang-go/crab/core/micro/grpcx"
-	pb "github.com/bang-go/crab/examples/grpcx/helloworld"
+	pb "github.com/bang-go/crab/examples/proto/echo"
 	"google.golang.org/grpc"
+	"log"
 	"testing"
+	"time"
 )
 
 func TestUnaryClient(t *testing.T) {
@@ -15,12 +17,35 @@ func TestUnaryClient(t *testing.T) {
 	var concurrency = 100
 	for i := 0; i < concurrency; i++ {
 		reply, err := rpcClient.DialWithCall(func(conn *grpc.ClientConn) (any, error) {
-			client := pb.NewGreeterClient(conn)
-			return client.SayHello(context.Background(), &pb.HelloRequest{Name: "jk"})
+			client := pb.NewEchoClient(conn)
+			return client.UnaryEcho(context.Background(), &pb.EchoRequest{Message: "jk"})
 		})
 		if err != nil {
-			//log.Fatal(err)
+			log.Fatal(err)
 		}
-		fmt.Println(reply.(*pb.HelloReply))
+		fmt.Println(reply.(*pb.EchoResponse))
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func TestClientKeepalive(t *testing.T) {
+	rpcClient := grpcx.NewClient(&grpcx.ClientConfig{Addr: "127.0.0.1:8081"})
+	defer rpcClient.Close()
+	conn, err := rpcClient.Dial()
+	if err != nil {
+		log.Fatal(err)
+	}
+	client := pb.NewEchoClient(conn)
+	streamReply, err := client.ServerStreamingEcho(context.Background(), &pb.EchoRequest{Message: "jk"})
+	if err != nil {
+		log.Fatal(err)
+	}
+	for {
+		reply, err := streamReply.Recv()
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(reply)
+		time.Sleep(time.Minute)
 	}
 }

@@ -1,9 +1,13 @@
 package grpcx
 
 import (
+	"github.com/bang-go/crab/core/base/tracex/instrument/grpctrace"
+	"github.com/bang-go/crab/core/pub/graceful"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/keepalive"
 	"net"
+	"time"
 )
 
 type Server interface {
@@ -11,24 +15,28 @@ type Server interface {
 	AddUnaryInterceptor(interceptor ...grpc.UnaryServerInterceptor)
 	AddStreamInterceptor(interceptor ...grpc.StreamServerInterceptor)
 	Start(ServerRegisterFunc) error
+	Engine() *grpc.Server
+	Shutdown() error
 }
 
-type ServerWrapper struct {
+type ServerEntity struct {
 	*ServerConfig
 	serverOptions      []grpc.ServerOption
 	streamInterceptors []grpc.StreamServerInterceptor
 	unaryInterceptors  []grpc.UnaryServerInterceptor
+	grpcServer         *grpc.Server
 }
 
 type ServerRegisterFunc func(*grpc.Server)
 type ServerConfig struct {
-	Addr string
+	Addr  string
+	Trace bool
 }
 
-// todo: 心跳检测，trace，metric
+// todo: trace，metric，retry
 
 func NewServer(conf *ServerConfig) Server {
-	return &ServerWrapper{
+	return &ServerEntity{
 		ServerConfig:       conf,
 		serverOptions:      nil,
 		streamInterceptors: nil,
@@ -36,27 +44,56 @@ func NewServer(conf *ServerConfig) Server {
 	}
 }
 
-func (s *ServerWrapper) AddServerOptions(serverOption ...grpc.ServerOption) {
+var defaultServerKeepaliveEnforcementPolicy = keepalive.EnforcementPolicy{
+	MinTime:             10 * time.Second, // If a client pings more than once every 5 seconds, terminate the connection
+	PermitWithoutStream: true,             // Allow pings even when there are no active streams
+}
+
+var defaultServerKeepaliveParams = keepalive.ServerParameters{
+	MaxConnectionIdle:     infinity,         // If a client is idle for 15 seconds, send a GOAWAY
+	MaxConnectionAge:      infinity,         // If any connection is alive for more than 30 seconds, send a GOAWAY
+	MaxConnectionAgeGrace: 30 * time.Second, // Allow 530seconds for pending RPCs to complete before forcibly closing connections
+	Time:                  10 * time.Second, // Ping the client if it is idle for 5 seconds to ensure the connection is still active
+	Timeout:               2 * time.Second,  // Wait 1 second for the ping ack before assuming the connection is dead
+}
+
+func (s *ServerEntity) AddServerOptions(serverOption ...grpc.ServerOption) {
 	s.serverOptions = append(s.serverOptions, serverOption...)
 }
 
-func (s *ServerWrapper) AddUnaryInterceptor(interceptor ...grpc.UnaryServerInterceptor) {
+func (s *ServerEntity) AddUnaryInterceptor(interceptor ...grpc.UnaryServerInterceptor) {
 	s.unaryInterceptors = append(s.unaryInterceptors, interceptor...)
 }
 
-func (s *ServerWrapper) AddStreamInterceptor(interceptor ...grpc.StreamServerInterceptor) {
+func (s *ServerEntity) AddStreamInterceptor(interceptor ...grpc.StreamServerInterceptor) {
 	s.streamInterceptors = append(s.streamInterceptors, interceptor...)
 }
 
-func (s *ServerWrapper) Start(register ServerRegisterFunc) error {
-	var err error
+func (s *ServerEntity) Start(register ServerRegisterFunc) (err error) {
 	lis, err := net.Listen("tcp", s.Addr)
 	if err != nil {
 		grpclog.Fatalf("Failed to listen: %v", err)
 	}
+	baseOptions := []grpc.ServerOption{grpc.KeepaliveEnforcementPolicy(defaultServerKeepaliveEnforcementPolicy), grpc.KeepaliveParams(defaultServerKeepaliveParams)}
+	if s.Trace {
+		baseOptions = append(baseOptions, grpc.ChainUnaryInterceptor(grpctrace.UnaryServerInterceptor()), grpc.ChainStreamInterceptor(grpctrace.StreamServerInterceptor()))
+	}
+	s.serverOptions = append(baseOptions, s.serverOptions...)
 	options := append(s.serverOptions, grpc.ChainUnaryInterceptor(s.unaryInterceptors...), grpc.ChainStreamInterceptor(s.streamInterceptors...))
-	server := grpc.NewServer(options...)
-	register(server)
-	return server.Serve(lis)
+	s.grpcServer = grpc.NewServer(options...)
+	register(s.grpcServer)
 
+	//注册优雅退出
+	graceful.Register(s.Shutdown)
+	err = s.grpcServer.Serve(lis)
+	return
+}
+
+func (s *ServerEntity) Engine() *grpc.Server {
+	return s.grpcServer
+}
+
+func (s *ServerEntity) Shutdown() error {
+	s.grpcServer.GracefulStop()
+	return nil
 }

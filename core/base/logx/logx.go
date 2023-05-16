@@ -75,8 +75,8 @@ var (
 	Any        = zap.Any
 )
 
-func New(opts ...opt.Option[options]) *Logger {
-	o := &options{
+func New(opts ...opt.Option[Options]) *Logger {
+	o := &Options{
 		callerSkip:   defaultCallSkip,
 		levelEnabler: defaultLevelEnabler,
 	}
@@ -105,7 +105,7 @@ func New(opts ...opt.Option[options]) *Logger {
 	return zap.New(core, zapOptions...)
 }
 
-func Build(opts ...opt.Option[options]) {
+func Build(opts ...opt.Option[Options]) {
 	logger = New(opts...)
 	return
 }

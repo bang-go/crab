@@ -19,17 +19,17 @@ func TestGin(t *testing.T) {
 	log.Println("do something")
 	//cmd为可选模式
 	cmdGin := cmd.New(&cmd.Config{CmdUse: "gin"})
-	cmdGin.SetRun(func(args []string) error {
+	cmdGin.SetRun(func(args []string) {
 		//cmd gin logic
 		server := ginx.New(&ginx.ServerConfig{Addr: ":8080", Mode: gin.ReleaseMode})
 		setRoute(server)
-		return server.Start()
+		_ = server.Start()
 	})
-	crab.AddCmd(cmdGin)
+	crab.RegisterCmd(cmdGin)
 	if err = crab.Start(); err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
-	defer crab.Exit()
+	defer crab.Close()
 }
 
 func setRoute(server ginx.Server) {

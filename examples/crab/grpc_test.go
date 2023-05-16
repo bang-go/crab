@@ -10,29 +10,29 @@ import (
 	"log"
 	"testing"
 )
-import pb "github.com/bang-go/crab/examples/grpcx/helloworld"
+import pb "github.com/bang-go/crab/examples/proto/echo"
 
 type greeterWrapper struct {
-	pb.UnimplementedGreeterServer
+	pb.UnimplementedEchoServer
 }
 
-func (g *greeterWrapper) SayHello(ctx context.Context, req *pb.HelloRequest) (*pb.HelloReply, error) {
-	return &pb.HelloReply{Message: "hello " + req.Name}, nil
+func (g *greeterWrapper) SayHello(ctx context.Context, req *pb.EchoRequest) (*pb.EchoResponse, error) {
+	return &pb.EchoResponse{Message: "hello " + req.Message}, nil
 }
 func TestGrpcServer(t *testing.T) {
 	var err error
 	crab.Build(crab.WithLogEncoding(logx.EncodeConsole), crab.WithLogAllowLevel(logx.InfoLevel))
 
 	cmder := cmd.New(&cmd.Config{CmdUse: "grpc-server", CmdShort: "serve grpc server"})
-	cmder.SetRun(func(args []string) error {
+	cmder.SetRun(func(args []string) {
 		server := grpcx.NewServer(&grpcx.ServerConfig{Addr: ":8081"})
-		return server.Start(func(server *grpc.Server) {
-			pb.RegisterGreeterServer(server, &greeterWrapper{})
+		_ = server.Start(func(server *grpc.Server) {
+			pb.RegisterEchoServer(server, &greeterWrapper{})
 		})
 	})
-	crab.AddCmd(cmder)
+	crab.RegisterCmd(cmder)
 	err = crab.Start()
-	defer crab.Exit()
+	defer crab.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -40,23 +40,22 @@ func TestGrpcServer(t *testing.T) {
 
 func TestGrpcClient(t *testing.T) {
 	crab.Build(crab.WithLogEncoding(logx.EncodeConsole), crab.WithLogAllowLevel(logx.InfoLevel))
-	cmder := cmd.NewWithRunFunc(&cmd.Config{CmdUse: "grpc-client", CmdShort: "serve grpc client"}, func(args []string) error {
+	cmder := cmd.NewWithRunFunc(&cmd.Config{CmdUse: "grpc-client", CmdShort: "serve grpc client"}, func(args []string) {
 		var err error
 		client := grpcx.NewClient(&grpcx.ClientConfig{Addr: ":8081"})
 		defer client.Close()
 		reply, err := client.DialWithCall(func(conn *grpc.ClientConn) (any, error) {
-			client := pb.NewGreeterClient(conn)
-			return client.SayHello(context.Background(), &pb.HelloRequest{Name: "crab"})
+			client := pb.NewEchoClient(conn)
+			return client.UnaryEcho(context.Background(), &pb.EchoRequest{Message: "crab"})
 		})
 		if err != nil {
-			return err
+			return
 		}
-		log.Println(reply.(*pb.HelloReply))
-		return nil
+		log.Println(reply.(*pb.EchoResponse))
 	})
-	crab.AddCmd(cmder)
+	crab.RegisterCmd(cmder)
 	err := crab.Start()
-	defer crab.Exit()
+	defer crab.Close()
 	if err != nil {
 		log.Fatal(err)
 	}

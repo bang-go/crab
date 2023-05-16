@@ -4,18 +4,18 @@ import (
 	"github.com/bang-go/opt"
 )
 
-type options struct {
+type Options struct {
 	appKey string
 	appEnv string
 }
 
-func WithAppKey(appKey string) opt.Option[options] {
-	return opt.OptionFunc[options](func(o *options) {
+func WithAppKey(appKey string) opt.Option[Options] {
+	return opt.OptionFunc[Options](func(o *Options) {
 		o.appKey = appKey
 	})
 }
-func WithAppEnv(appEnv string) opt.Option[options] {
-	return opt.OptionFunc[options](func(o *options) {
+func WithAppEnv(appEnv string) opt.Option[Options] {
+	return opt.OptionFunc[Options](func(o *Options) {
 		o.appEnv = appEnv
 	})
 }

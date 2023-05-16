@@ -19,8 +19,8 @@ const (
 
 var appEnv string //应用环境变量
 
-func Build(opts ...opt.Option[options]) error {
-	o := &options{
+func Build(opts ...opt.Option[Options]) error {
+	o := &Options{
 		appKey: DefaultAppEnvKey,
 	}
 	opt.Each(o, opts...)

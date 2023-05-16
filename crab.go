@@ -1,68 +1,83 @@
 package crab
 
 import (
+	"context"
 	"github.com/bang-go/crab/cmd"
 	"github.com/bang-go/crab/core/base/logx"
+	"github.com/bang-go/crab/core/base/types"
+	"github.com/bang-go/crab/core/pub/bag"
+	"github.com/bang-go/crab/core/pub/graceful"
 	"github.com/bang-go/crab/internal/log"
 	"github.com/bang-go/opt"
 	"github.com/spf13/cobra"
 	"sync"
 )
 
-type HandlerFunc func() error
 type Handler struct {
-	Name  string      //名称
-	Init  HandlerFunc //初始化
-	Close HandlerFunc //结束
+	Pre   types.FuncErr //预加载
+	Init  types.FuncErr //初始化
+	Close types.FuncErr //关闭
 }
+
 type Worker interface {
-	Exec([]Handler) error
-	Use([]Handler)
-	AddCmd(...cmd.Cmder)
+	Use(...Handler) error
+	RegisterCmd(...cmd.Cmder)
 	Start() error
-	Exit() error
+	Close()
+	Done()
 }
 
-type artisan struct {
-	opt          *options
-	ExecHandlers []Handler
-	UseHandlers  []Handler
-	Cmds         []cmd.Cmder
-	commandPtr   *cobra.Command
-}
-type logOptions struct {
-	allowLogLevel logx.Level //允许的log level -1:Debug info:0 1:warn 2:error 3:dpanic 4 panic 5 fatal
-	logEncoding   string     //日志编码 取值：json,console
-}
-type options struct {
-	logOptions
+type artisanEntity struct {
+	ctx         context.Context
+	opt         *options
+	preBagger   bag.Bagger
+	initBagger  bag.Bagger
+	closeBagger bag.Bagger
+	done        chan struct{}
+	Cmds        []cmd.Cmder
+	commandPtr  *cobra.Command
+	appName     string
 }
 
-var art *artisan
+var art *artisanEntity
+var _ Worker = art
 var m sync.RWMutex
 
 // Build creates a new ant instance.
 func Build(opts ...opt.Option[options]) {
 	var err error
-	o := &options{logOptions{allowLogLevel: logx.InfoLevel, logEncoding: logx.EncodeJson}}
+	o := &options{logOptions: logOptions{allowLogLevel: logx.InfoLevel, logEncoding: logx.EncodeJson}, appName: DefaultAppName}
 	opt.Each(o, opts...)
-	art = &artisan{opt: o, ExecHandlers: []Handler{}, UseHandlers: []Handler{}, commandPtr: cmd.RootCmd}
-	if err = art.init(); err != nil { //框架预加载
+	art = &artisanEntity{ctx: context.Background(),
+		opt:         o,
+		preBagger:   bag.NewBagger(),
+		initBagger:  bag.NewBagger(),
+		closeBagger: bag.NewBagger(),
+		done:        make(chan struct{}, 1),
+		commandPtr:  cmd.RootCmd,
+		appName:     o.appName,
+	}
+	if err = art.init(); err != nil { //框架本身初始化加载
 		panic(err)
 	}
 }
-func defaultArtisan() *artisan {
+
+func defaultArtisan() *artisanEntity {
+	if art == nil {
+		Build()
+	}
 	return art
 }
 
 func Start() error {
-	return defaultArtisan().start()
+	m.RLock()
+	defer m.RUnlock()
+	return defaultArtisan().Start()
 }
-func (a *artisan) start() error {
-	for _, h := range a.UseHandlers {
-		if err := initHandler(h); err != nil {
-			return err
-		}
+func (a *artisanEntity) Start() error {
+	go graceful.WatchSignal(a.done, a.closeBagger)
+	if err := a.initBagger.Finish(); err != nil {
+		return err
 	}
 	if len(a.Cmds) > 0 {
 		for _, v := range a.Cmds {
@@ -73,99 +88,90 @@ func (a *artisan) start() error {
 	return nil
 }
 
-func (a *artisan) init() error {
+func (a *artisanEntity) init() error {
 	//初始化日志客户端
 	log.InitLog(a.opt.allowLogLevel, a.opt.logEncoding)
 	return nil
 }
 
-func Exit() error {
-	return defaultArtisan().exit()
+func Close() {
+	m.RLock()
+	defer m.RUnlock()
+	defaultArtisan().Close()
 }
 
-// Exit 停止
-func (a *artisan) exit() error {
+// Close 停止
+func (a *artisanEntity) Close() {
 	//框架相关
 	_ = log.FrameLogger.Sync()
 	//应用相关
-	exitHandle := append(a.ExecHandlers, a.UseHandlers...)
-	if len(exitHandle) > 0 {
-		for _, v := range exitHandle {
-			if err := closeHandler(v); err != nil {
+	if err := a.closeBagger.Finish(); err != nil {
+		log.FrameLogger.Error(err.Error())
+	}
+}
+
+func Use(Handlers ...Handler) error {
+	m.RLock()
+	defer m.RUnlock()
+	return defaultArtisan().Use(Handlers...)
+}
+
+func (a *artisanEntity) Use(handlers ...Handler) error {
+	for _, handler := range handlers {
+		if handler.Pre != nil {
+			a.preBagger.Register(handler.Pre)
+			//直接运行pre
+			err := handler.Pre()
+			if err != nil {
+				log.FrameLogger.Error(err.Error())
 				return err
 			}
 		}
-	}
-	return nil
-}
-
-func Exec(Handlers []Handler) error {
-	m.RLock()
-	defer m.RUnlock()
-	return defaultArtisan().exec(Handlers)
-}
-
-// Exec 立刻会调用初始化函数，适用于需要立即执行Init，否则使用Use，按顺序加载
-func (a *artisan) exec(Handlers []Handler) error {
-	a.ExecHandlers = append(a.ExecHandlers, Handlers...)
-	for _, h := range Handlers {
-		if err := initHandler(h); err != nil {
-			return err
+		if handler.Init != nil {
+			a.initBagger.Register(handler.Init)
+		}
+		if handler.Close != nil {
+			a.closeBagger.Register(handler.Close)
 		}
 	}
+
 	return nil
 }
 
-func Use(Handlers []Handler) {
+func RegisterCmd(cmds ...cmd.Cmder) {
 	m.RLock()
 	defer m.RUnlock()
-	defaultArtisan().use(Handlers)
-}
-func (a *artisan) use(Handlers []Handler) {
-	a.UseHandlers = append(a.UseHandlers, Handlers...)
+	defaultArtisan().RegisterCmd(cmds...)
 }
 
-func initHandler(h Handler) error {
-	if h.Init == nil {
-		return nil
-	}
-	if err := h.Init(); err != nil {
-		log.FrameLogger.Error("init failed", logx.String("name", h.Name), logx.String("err", err.Error()))
-		return err
-	}
-	log.FrameLogger.Info("init successful", logx.String("name", h.Name))
-	return nil
-}
-
-func closeHandler(h Handler) error {
-	if h.Close == nil {
-		return nil
-	}
-	if err := h.Close(); err != nil {
-		log.FrameLogger.Error("close failed", logx.String("name", h.Name), logx.String("err", err.Error()))
-		return err
-	}
-	log.FrameLogger.Info("close successful", logx.String("name", h.Name))
-	return nil
-}
-
-func AddCmd(cmds ...cmd.Cmder) {
-	m.RLock()
-	defer m.RUnlock()
-	defaultArtisan().addCmd(cmds...)
-}
-func (a *artisan) addCmd(cmds ...cmd.Cmder) {
+func (a *artisanEntity) RegisterCmd(cmds ...cmd.Cmder) {
 	a.Cmds = append(a.Cmds, cmds...)
 }
 
-func WithLogAllowLevel(logLevel logx.Level) opt.Option[options] {
-	return opt.OptionFunc[options](func(o *options) {
-		o.allowLogLevel = logLevel
-	})
+func RegisterInitBagger(f ...types.FuncErr) {
+	m.RLock()
+	defer m.RUnlock()
+	defaultArtisan().RegisterInitBagger(f...)
 }
 
-func WithLogEncoding(logEncoding string) opt.Option[options] {
-	return opt.OptionFunc[options](func(o *options) {
-		o.logEncoding = logEncoding
-	})
+func (a *artisanEntity) RegisterInitBagger(f ...types.FuncErr) {
+	a.initBagger.Register(f...)
+}
+
+func RegisterCloseBagger(f ...types.FuncErr) {
+	m.RLock()
+	defer m.RUnlock()
+	defaultArtisan().RegisterCloseBagger(f...)
+}
+
+func (a *artisanEntity) RegisterCloseBagger(f ...types.FuncErr) {
+	a.closeBagger.Register(f...)
+}
+
+func Done() {
+	defaultArtisan().Done()
+}
+
+func (a *artisanEntity) Done() {
+	a.done <- struct{}{}
 }
