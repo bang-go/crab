@@ -31,7 +31,7 @@ func TestTrace(t *testing.T) {
 		log.Fatal(err)
 	}
 	defer provider.Stop()
-	tracer := tracex.Tracer("ex.com/basic")
+	tracer := tracex.Tracer("crab.com/basic")
 	ctx, span := tracer.NewSpan("span11")
 	span.SetStatus(404, "undefined")
 	defer span.End()

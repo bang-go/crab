@@ -8,6 +8,7 @@ import (
 	"github.com/bang-go/crab/core/pub/bag"
 	"github.com/bang-go/crab/core/pub/graceful"
 	"github.com/bang-go/crab/internal/log"
+	"github.com/bang-go/crab/internal/vars"
 	"github.com/bang-go/opt"
 	"github.com/spf13/cobra"
 	"sync"
@@ -46,7 +47,7 @@ var m sync.RWMutex
 // Build creates a new ant instance.
 func Build(opts ...opt.Option[options]) {
 	var err error
-	o := &options{logOptions: logOptions{allowLogLevel: logx.InfoLevel, logEncoding: logx.EncodeJson}, appName: DefaultAppName}
+	o := &options{logOptions: logOptions{allowLogLevel: logx.InfoLevel, logEncoding: logx.EncodeJson}, appName: vars.DefaultAppName.Load()}
 	opt.Each(o, opts...)
 	art = &artisanEntity{ctx: context.Background(),
 		opt:         o,

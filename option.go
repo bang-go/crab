@@ -2,6 +2,7 @@ package crab
 
 import (
 	"github.com/bang-go/crab/core/base/logx"
+	"github.com/bang-go/crab/internal/vars"
 	"github.com/bang-go/opt"
 )
 
@@ -29,5 +30,6 @@ func WithLogEncoding(logEncoding string) opt.Option[options] {
 func WithAppName(appName string) opt.Option[options] {
 	return opt.OptionFunc[options](func(o *options) {
 		o.appName = appName
+		vars.DefaultAppName.Store(appName)
 	})
 }

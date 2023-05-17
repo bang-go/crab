@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/bang-go/crab/core/base/tracex/instrument/gintrace"
 	"github.com/bang-go/crab/core/pub/graceful"
+	"github.com/bang-go/crab/internal/vars"
 	"github.com/bang-go/util"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -36,7 +37,7 @@ func New(conf *ServerConfig) Server {
 	ginEngine := gin.New()
 	ginEngine.Use(gin.Recovery())
 	if conf.Trace {
-		ginEngine.Use(gintrace.Middleware("gin-server", gintrace.WithFilter(conf.TraceFilter))) //todo: server name
+		ginEngine.Use(gintrace.Middleware(vars.DefaultAppName.Load(), gintrace.WithFilter(conf.TraceFilter)))
 	}
 	return &ServerEntity{
 		ServerConfig: conf,
