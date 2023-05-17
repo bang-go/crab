@@ -10,20 +10,20 @@ import (
 
 type Filter = otelgin.Filter
 
-type options struct {
+type Options struct {
 	filters []Filter
 }
 
-func Middleware(service string, opts ...opt.Option[options]) gin.HandlerFunc {
-	o := &options{
+func Middleware(service string, opts ...opt.Option[Options]) gin.HandlerFunc {
+	o := &Options{
 		filters: []Filter{DefaultHealthCheckFilter},
 	}
 	opt.Each(o, opts...)
-	return otelgin.Middleware(service, otelgin.WithPropagators(tracex.Propagator()), otelgin.WithTracerProvider(tracex.Provider()), otelgin.WithFilter(o.filters...))
+	return otelgin.Middleware(service, otelgin.WithPropagators(tracex.Propagator()), otelgin.WithTracerProvider(tracex.Provider()),otelgin.WithFilter(o.filters...))
 }
 
-func WithFilter(f ...Filter) opt.Option[options] {
-	return opt.OptionFunc[options](func(o *options) {
+func WithFilter(f ...Filter) opt.Option[Options] {
+	return opt.OptionFunc[Options](func(o *Options) {
 		o.filters = append(o.filters, f...)
 	})
 }

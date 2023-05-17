@@ -7,12 +7,12 @@ import (
 
 type Filter = otelgrpc.Filter
 
-type options struct {
+type Options struct {
 	filter Filter
 }
 
-func WithFilter(f Filter) opt.Option[options] {
-	return opt.OptionFunc[options](func(o *options) {
+func WithFilter(f Filter) opt.Option[Options] {
+	return opt.OptionFunc[Options](func(o *Options) {
 		o.filter = f
 	})
 }

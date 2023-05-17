@@ -7,14 +7,14 @@ import (
 	"google.golang.org/grpc"
 )
 
-func UnaryClientInterceptor(opts ...opt.Option[options]) grpc.UnaryClientInterceptor {
-	o := new(options)
+func UnaryClientInterceptor(opts ...opt.Option[Options]) grpc.UnaryClientInterceptor {
+	o := new(Options)
 	opt.Each(o, opts...)
 	return otelgrpc.UnaryClientInterceptor(otelgrpc.WithPropagators(tracex.Propagator()), otelgrpc.WithTracerProvider(tracex.Provider()), otelgrpc.WithInterceptorFilter(o.filter))
 }
 
-func StreamClientInterceptor(opts ...opt.Option[options]) grpc.StreamClientInterceptor {
-	o := new(options)
+func StreamClientInterceptor(opts ...opt.Option[Options]) grpc.StreamClientInterceptor {
+	o := new(Options)
 	opt.Each(o, opts...)
 	return otelgrpc.StreamClientInterceptor(otelgrpc.WithPropagators(tracex.Propagator()), otelgrpc.WithTracerProvider(tracex.Provider()), otelgrpc.WithInterceptorFilter(o.filter))
 }

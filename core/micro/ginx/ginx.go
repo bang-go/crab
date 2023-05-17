@@ -37,7 +37,11 @@ func New(conf *ServerConfig) Server {
 	ginEngine := gin.New()
 	ginEngine.Use(gin.Recovery())
 	if conf.Trace {
-		ginEngine.Use(gintrace.Middleware(vars.DefaultAppName.Load(), gintrace.WithFilter(conf.TraceFilter)))
+		middleware := gintrace.Middleware(vars.DefaultAppName.Load())
+		if conf.TraceFilter != nil {
+			middleware = gintrace.Middleware(vars.DefaultAppName.Load(), gintrace.WithFilter(conf.TraceFilter))
+		}
+		ginEngine.Use(middleware)
 	}
 	return &ServerEntity{
 		ServerConfig: conf,

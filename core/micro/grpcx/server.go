@@ -77,8 +77,13 @@ func (s *ServerEntity) Start(register ServerRegisterFunc) (err error) {
 	}
 	baseOptions := []grpc.ServerOption{grpc.KeepaliveEnforcementPolicy(defaultServerKeepaliveEnforcementPolicy), grpc.KeepaliveParams(defaultServerKeepaliveParams)}
 	if s.Trace {
-		baseOptions = append(baseOptions, grpc.ChainUnaryInterceptor(grpctrace.UnaryServerInterceptor(grpctrace.WithFilter(s.TraceFilter))), grpc.ChainStreamInterceptor(grpctrace.StreamServerInterceptor(grpctrace.WithFilter(s.TraceFilter))))
+		traceOption := []grpc.ServerOption{grpc.ChainUnaryInterceptor(grpctrace.UnaryServerInterceptor()), grpc.ChainStreamInterceptor(grpctrace.StreamServerInterceptor())}
+		if s.TraceFilter != nil {
+			traceOption = []grpc.ServerOption{grpc.ChainUnaryInterceptor(grpctrace.UnaryServerInterceptor(grpctrace.WithFilter(s.TraceFilter))), grpc.ChainStreamInterceptor(grpctrace.StreamServerInterceptor(grpctrace.WithFilter(s.TraceFilter)))}
+		}
+		baseOptions = append(baseOptions, traceOption...)
 	}
+
 	s.serverOptions = append(baseOptions, s.serverOptions...)
 	options := append(s.serverOptions, grpc.ChainUnaryInterceptor(s.unaryInterceptors...), grpc.ChainStreamInterceptor(s.streamInterceptors...))
 	s.grpcServer = grpc.NewServer(options...)
