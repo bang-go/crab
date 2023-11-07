@@ -6,6 +6,7 @@ import (
 	"github.com/alibaba/sentinel-golang/core/config"
 	"github.com/alibaba/sentinel-golang/logging"
 	"github.com/alibaba/sentinel-golang/util"
+	"github.com/bang-go/crab/internal/log"
 	"github.com/bang-go/opt"
 )
 
