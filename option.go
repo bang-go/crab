@@ -8,7 +8,7 @@ import (
 
 type logOptions struct {
 	allowLogLevel logx.Level //允许的log level -1:Debug info:0 1:warn 2:error 3:dpanic 4 panic 5 fatal
-	logEncoding   string     //日志编码 取值：json,console
+	logEncodeType uint       //日志编码方式
 }
 type options struct {
 	logOptions
@@ -21,9 +21,9 @@ func WithLogAllowLevel(logLevel logx.Level) opt.Option[options] {
 	})
 }
 
-func WithLogEncoding(logEncoding string) opt.Option[options] {
+func WithLogEncoding(logEncodeType uint) opt.Option[options] {
 	return opt.OptionFunc[options](func(o *options) {
-		o.logEncoding = logEncoding
+		o.logEncodeType = logEncodeType
 	})
 }
 

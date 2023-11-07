@@ -47,7 +47,7 @@ var m sync.RWMutex
 // Build creates a new ant instance.
 func Build(opts ...opt.Option[options]) {
 	var err error
-	o := &options{logOptions: logOptions{allowLogLevel: logx.InfoLevel, logEncoding: logx.EncodeJson}, appName: vars.DefaultAppName.Load()}
+	o := &options{logOptions: logOptions{allowLogLevel: logx.LevelInfo, logEncodeType: logx.LogEncodeJson}, appName: vars.DefaultAppName.Load()}
 	opt.Each(o, opts...)
 	art = &artisanEntity{ctx: context.Background(),
 		opt:         o,
@@ -91,7 +91,7 @@ func (a *artisanEntity) Start() error {
 
 func (a *artisanEntity) init() error {
 	//初始化日志客户端
-	log.InitLog(a.opt.allowLogLevel, a.opt.logEncoding)
+	//log.InitLog(a.opt.allowLogLevel, a.opt.logEncoding)
 	return nil
 }
 
@@ -104,7 +104,6 @@ func Close() {
 // Close 停止
 func (a *artisanEntity) Close() {
 	//框架相关
-	_ = log.FrameLogger.Sync()
 	//应用相关
 	if err := a.closeBagger.Finish(); err != nil {
 		log.FrameLogger.Error(err.Error())

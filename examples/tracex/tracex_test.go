@@ -18,7 +18,7 @@ var (
 
 func InitFrame() {
 	flag.Parse()
-	crab.Build(crab.WithLogAllowLevel(logx.WarnLevel))
+	crab.Build(crab.WithLogAllowLevel(logx2.WarnLevel))
 	err := crab.Use(crab.UseAppEnv())
 	if err != nil {
 		log.Fatal(err)

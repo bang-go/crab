@@ -32,7 +32,7 @@ func (g *greeterWrapper) ServerStreamingEcho(req *pb.EchoRequest, stream pb.Echo
 }
 func TestGrpcServer(t *testing.T) {
 	var err error
-	crab.Build(crab.WithLogEncoding(logx.EncodeConsole), crab.WithLogAllowLevel(logx.InfoLevel))
+	crab.Build(crab.WithLogEncoding(logx.LogEncodeJson), crab.WithLogAllowLevel(logx.LevelInfo))
 	cmder := cmd.New(&cmd.Config{CmdUse: "grpc-server", CmdShort: "serve grpc server"})
 	cmder.SetRun(func(args []string) {
 		server := grpcx.NewServer(&grpcx.ServerConfig{Addr: ":8081"})
@@ -48,7 +48,7 @@ func TestGrpcServer(t *testing.T) {
 }
 
 func TestGrpcClient(t *testing.T) {
-	crab.Build(crab.WithLogEncoding(logx.EncodeConsole), crab.WithLogAllowLevel(logx.InfoLevel))
+	crab.Build(crab.WithLogEncoding(logx.LogEncodeJson), crab.WithLogAllowLevel(logx.LevelInfo))
 	err := crab.Start()
 	if err != nil {
 		log.Fatal(err)

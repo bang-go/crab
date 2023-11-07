@@ -1,6 +1,6 @@
 module github.com/bang-go/crab
 
-go 1.20
+go 1.21
 
 require (
 	github.com/alibaba/sentinel-golang v1.0.4

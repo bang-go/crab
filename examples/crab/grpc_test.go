@@ -21,7 +21,7 @@ func (g *greeterWrapper) SayHello(ctx context.Context, req *pb.EchoRequest) (*pb
 }
 func TestGrpcServer(t *testing.T) {
 	var err error
-	crab.Build(crab.WithLogEncoding(logx.EncodeConsole), crab.WithLogAllowLevel(logx.InfoLevel))
+	crab.Build(crab.WithLogEncoding(logx.LogEncodeJson), crab.WithLogAllowLevel(logx.LevelInfo))
 
 	cmder := cmd.New(&cmd.Config{CmdUse: "grpc-server", CmdShort: "serve grpc server"})
 	cmder.SetRun(func(args []string) {
@@ -39,7 +39,7 @@ func TestGrpcServer(t *testing.T) {
 }
 
 func TestGrpcClient(t *testing.T) {
-	crab.Build(crab.WithLogEncoding(logx.EncodeConsole), crab.WithLogAllowLevel(logx.InfoLevel))
+	crab.Build(crab.WithLogEncoding(logx.LogEncodeJson), crab.WithLogAllowLevel(logx.LevelInfo))
 	cmder := cmd.NewWithRunFunc(&cmd.Config{CmdUse: "grpc-client", CmdShort: "serve grpc client"}, func(args []string) {
 		var err error
 		client := grpcx.NewClient(&grpcx.ClientConfig{Addr: ":8081"})

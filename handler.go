@@ -47,7 +47,7 @@ func UseAppLog(opts ...opt.Option[logx.Options]) Handler {
 			logx.Build(opts...)
 			return nil
 		}, Close: func() error {
-			return logx.Sync()
+			return nil
 		},
 	}
 }

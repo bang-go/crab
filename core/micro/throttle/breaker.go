@@ -6,7 +6,6 @@ import (
 	"github.com/alibaba/sentinel-golang/core/config"
 	"github.com/alibaba/sentinel-golang/logging"
 	"github.com/alibaba/sentinel-golang/util"
-	"github.com/bang-go/crab/core/base/logx"
 	"github.com/bang-go/crab/internal/log"
 	"github.com/bang-go/opt"
 )
@@ -44,7 +43,7 @@ func (b *breaker) Guard(resource string, pass FuncWithErr, reject Func, opts ...
 	e, block := sentinelApi.Entry(resource, opts...)
 	if block != nil {
 		// Blocked. We could get the block reason from the BlockError.
-		log.FrameLogger.Warn("sentinel breaker reject", logx.String("msg", block.BlockMsg()))
+		log.FrameLogger.Warn("sentinel breaker reject", "msg", block.BlockMsg())
 		reject()
 		return false
 	} else {
@@ -65,17 +64,17 @@ func DefaultStateChangeListener() *StateChangeListener {
 }
 func (s *StateChangeListener) OnTransformToClosed(prev circuitbreaker.State, rule circuitbreaker.Rule) {
 	//fmt.Printf("sentinel breaker trans to closed: %+v, From %s to Closed, time: %d\n", rule.Strategy, prev.String(), util.CurrentTimeMillis())
-	log.FrameLogger.Info("sentinel breaker trans to closed", logx.String("strategy", rule.Strategy.String()), logx.String("previously state", prev.String()), logx.Uint64("time", util.CurrentTimeMillis()))
+	log.FrameLogger.Info("sentinel breaker trans to closed", "strategy", rule.Strategy.String(), "previously state", prev.String(), "time", util.CurrentTimeMillis())
 
 }
 
 func (s *StateChangeListener) OnTransformToOpen(prev circuitbreaker.State, rule circuitbreaker.Rule, snapshot interface{}) {
 	//fmt.Printf("rule.strategy: %+v, From %s to Open, snapshot: %d, time: %d\n", rule.Strategy, prev.String(), snapshot, util.CurrentTimeMillis())
-	log.FrameLogger.Info("sentinel breaker trans to open", logx.String("strategy", rule.Strategy.String()), logx.String("previously state", prev.String()), logx.Any("snapshot", snapshot), logx.Uint64("time", util.CurrentTimeMillis()))
+	log.FrameLogger.Info("sentinel breaker trans to open", "strategy", rule.Strategy.String(), "previously state", prev.String(), "snapshot", snapshot, "time", util.CurrentTimeMillis())
 }
 
 func (s *StateChangeListener) OnTransformToHalfOpen(prev circuitbreaker.State, rule circuitbreaker.Rule) {
 	//fmt.Printf("rule.strategy: %+v, From %s to Half-Open, time: %d\n", rule.Strategy, prev.String(), util.CurrentTimeMillis())
-	log.FrameLogger.Info("sentinel breaker trans to half-open", logx.String("strategy", rule.Strategy.String()), logx.String("previously state", prev.String()), logx.Uint64("time", util.CurrentTimeMillis()))
+	log.FrameLogger.Info("sentinel breaker trans to half-open", "strategy", rule.Strategy.String(), "previously state", prev.String(), "time", util.CurrentTimeMillis())
 
 }

@@ -30,7 +30,6 @@ func (b *BaggerEntity) Finish() (err error) {
 	b.once.Do(func() {
 		for _, l := range b.list {
 			err = l()
-
 			if err != nil {
 				return
 			}

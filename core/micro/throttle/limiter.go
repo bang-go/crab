@@ -5,7 +5,6 @@ import (
 	"github.com/alibaba/sentinel-golang/core/config"
 	"github.com/alibaba/sentinel-golang/core/flow"
 	"github.com/alibaba/sentinel-golang/logging"
-	"github.com/bang-go/crab/core/base/logx"
 	"github.com/bang-go/crab/internal/log"
 	"github.com/bang-go/opt"
 )
@@ -41,7 +40,7 @@ func (l *limiter) Guard(resource string, pass FuncWithErr, reject Func, opts ...
 	if b != nil {
 		// Blocked. We could get the block reason from the BlockError.
 		//log.Printf("sentinel throttle reject: %v", b.BlockMsg())
-		log.FrameLogger.Warn("sentinel throttle reject: ", logx.String("msg", b.BlockMsg()))
+		log.FrameLogger.Warn("sentinel throttle reject: ", "msg", b.BlockMsg())
 		reject()
 		return false
 	} else {

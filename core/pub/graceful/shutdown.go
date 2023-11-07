@@ -1,7 +1,6 @@
 package graceful
 
 import (
-	"github.com/bang-go/crab/core/base/logx"
 	"github.com/bang-go/crab/core/base/types"
 	"github.com/bang-go/crab/core/pub/bag"
 	"github.com/bang-go/crab/internal/log"
@@ -28,7 +27,7 @@ func WatchSignal(done chan struct{}, extBagger ...bag.Bagger) {
 	case <-done:
 		break
 	case s := <-sigChan:
-		log.FrameLogger.Warn("received signal", logx.String("sig", s.String()))
+		log.FrameLogger.Warn("received signal", "sig", s.String())
 		break
 	}
 	bagger := append(extBagger, shutdownBag)

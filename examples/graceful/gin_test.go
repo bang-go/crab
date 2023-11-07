@@ -13,7 +13,7 @@ import (
 
 func TestGin(t *testing.T) {
 	var err error
-	crab.Build(crab.WithLogEncoding(logx.EncodeConsole), crab.WithLogAllowLevel(logx.InfoLevel))
+	crab.Build(crab.WithLogEncoding(logx.LogEncodeJson), crab.WithLogAllowLevel(logx.LevelInfo))
 	//do something
 	log.Println("do something")
 	if err = crab.Start(); err != nil {
@@ -29,7 +29,7 @@ func TestGin(t *testing.T) {
 
 func TestGinWithCmd(t *testing.T) {
 	var err error
-	crab.Build(crab.WithLogEncoding(logx.EncodeConsole), crab.WithLogAllowLevel(logx.InfoLevel))
+	crab.Build(crab.WithLogEncoding(logx.LogEncodeJson), crab.WithLogAllowLevel(logx.LevelInfo))
 	//do something
 	log.Println("do something")
 	cmdGin := cmd.New(&cmd.Config{CmdUse: "gin"})

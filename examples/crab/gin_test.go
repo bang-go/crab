@@ -13,7 +13,7 @@ import (
 
 func TestGin(t *testing.T) {
 	var err error
-	crab.Build(crab.WithLogEncoding(logx.EncodeConsole), crab.WithLogAllowLevel(logx.InfoLevel))
+	crab.Build(crab.WithLogEncoding(logx.LogEncodeText), crab.WithLogAllowLevel(logx.LevelInfo))
 	baseSetting()
 	//do something
 	log.Println("do something")

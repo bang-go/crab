@@ -10,9 +10,9 @@ import (
 
 func TestJob(t *testing.T) {
 	var err error
-	crab.Build(crab.WithLogEncoding(logx.EncodeConsole), crab.WithLogAllowLevel(logx.InfoLevel))
+	crab.Build(crab.WithLogEncoding(logx.LogEncodeJson), crab.WithLogAllowLevel(logx.LevelInfo))
 	baseSetting()
-	crab.Use(crab.UseAppLog(logx.WithDefaultConfig(logx.DefaultConfigKindDev)))
+	crab.Use(crab.UseAppLog(logx.WithEncodeJson()))
 	//do something
 	log.Println("do something")
 	//cmd为可选模式

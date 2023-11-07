@@ -2,65 +2,49 @@ package logx
 
 import (
 	"github.com/bang-go/opt"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
+	"log/slog"
 )
 
 type Options struct {
-	callerSkip    int
-	logOutType    uint
-	logStdout     bool
-	logFileConfig *lumberjack.Logger
-	levelEnabler  zapcore.LevelEnabler
-	zapOption     []zap.Option
-	zapEncoder    zapcore.Encoder
-}
-
-func WithEncoder(encoder zapcore.Encoder) opt.Option[Options] {
-	return opt.OptionFunc[Options](func(o *Options) {
-		o.zapEncoder = encoder
-	})
-}
-
-func WithCallerSkip(skip int) opt.Option[Options] {
-	return opt.OptionFunc[Options](func(o *Options) {
-		o.callerSkip = skip
-	})
-}
-
-func WithDefaultConfig(kind int) opt.Option[Options] {
-	var encoder zapcore.Encoder
-	switch kind {
-	case DefaultConfigKindProd:
-		encoder = NewDefaultProdEncoder()
-	default:
-		encoder = NewDefaultDevEncoder()
-	}
-	return WithEncoder(encoder)
-}
-
-func WithZapOption(opts ...zap.Option) opt.Option[Options] {
-	return opt.OptionFunc[Options](func(o *Options) {
-		o.zapOption = opts
-	})
+	source        bool
+	logLevel      slog.Leveler
+	logEncodeType uint               // log encode type: text ,json
+	logOutType    uint               // log out type: stdout ,file
+	logFileConfig *lumberjack.Logger //default stdout
 }
 
 func WithOutStdout() opt.Option[Options] {
 	return opt.OptionFunc[Options](func(o *Options) {
-		o.logStdout = true
-		o.logOutType |= 1
+		o.logOutType = LogOutByStdout
 	})
 }
 
 func WithOutFile(config *lumberjack.Logger) opt.Option[Options] {
 	return opt.OptionFunc[Options](func(o *Options) {
 		o.logFileConfig = config
-		o.logOutType |= 2
+		o.logOutType = LogOutByFile
 	})
 }
-func WithLevelEnabler(levelEnabler zapcore.LevelEnabler) opt.Option[Options] {
+func WithEncodeText() opt.Option[Options] {
 	return opt.OptionFunc[Options](func(o *Options) {
-		o.levelEnabler = levelEnabler
+		o.logEncodeType = LogEncodeText
+	})
+}
+func WithEncodeJson() opt.Option[Options] {
+	return opt.OptionFunc[Options](func(o *Options) {
+		o.logEncodeType = LogEncodeJson
+	})
+}
+
+func WithLevel(level Level) opt.Option[Options] {
+	return opt.OptionFunc[Options](func(o *Options) {
+		o.logLevel = level
+	})
+}
+
+func WithSource(source bool) opt.Option[Options] {
+	return opt.OptionFunc[Options](func(o *Options) {
+		o.source = source
 	})
 }
