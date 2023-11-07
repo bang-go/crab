@@ -2,18 +2,35 @@ package log
 
 import (
 	"github.com/bang-go/crab/core/base/logx"
+	"github.com/bang-go/opt"
+	"sync"
 )
 
-var FrameLogger *logx.Logger
+var (
+	frameLogger *logx.Logger
+	m           sync.Mutex
+)
 
-// 默认初始化
-func init() {
-	FrameLogger = logx.New(logx.WithLevel(logx.LevelWarn), logx.WithOutStdout())
+func DefaultFrameLogger() *logx.Logger {
+	if frameLogger == nil {
+		m.Lock()
+		frameLogger = logx.New(logx.WithLevel(logx.LevelWarn), logx.WithOutStdout())
+		m.Unlock()
+	}
+	return frameLogger
 }
 
-//func InitLog(logLevel logx.Level, logEncode uint){
-//	FrameLogger=logx.New()
-//}
+func SetFrameLogger(logLevel logx.Level, logEncode uint) {
+	opts := []opt.Option[logx.Options]{logx.WithLevel(logLevel), logx.WithSource(true)}
+	switch logEncode {
+	case logx.LogEncodeJson:
+		opts = append(opts, logx.WithEncodeJson())
+		break
+	default:
+		opts = append(opts, logx.WithEncodeText())
+	}
+	frameLogger = logx.New(opts...)
+}
 
 //func InitLog(AllowLogLevel logx2.Level, LogEncoding string) {
 //	encodeConfig := zapcore.EncoderConfig{
@@ -37,5 +54,5 @@ func init() {
 //	default:
 //		encode = zapcore.NewConsoleEncoder(encodeConfig)
 //	}
-//	FrameLogger = logx2.New(logx2.WithLevelEnabler(AllowLogLevel), logx2.WithEncoder(encode), logx2.WithCallerSkip(0))
+//	frameLogger = logx2.New(logx2.WithLevelEnabler(AllowLogLevel), logx2.WithEncoder(encode), logx2.WithCallerSkip(0))
 //}

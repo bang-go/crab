@@ -3,7 +3,6 @@ package graceful
 import (
 	"github.com/bang-go/crab/core/base/types"
 	"github.com/bang-go/crab/core/pub/bag"
-	"github.com/bang-go/crab/internal/log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -27,7 +26,7 @@ func WatchSignal(done chan struct{}, extBagger ...bag.Bagger) {
 	case <-done:
 		break
 	case s := <-sigChan:
-		log.FrameLogger.Warn("received signal", "sig", s.String())
+		log.DefaultFrameLogger().Warn("received signal", "sig", s.String())
 		break
 	}
 	bagger := append(extBagger, shutdownBag)
@@ -45,10 +44,10 @@ func gracefulShutdown(sig chan os.Signal, bagger ...bag.Bagger) {
 	}()
 	select {
 	case <-ch:
-		log.FrameLogger.Warn("graceful stop finish")
+		log.DefaultFrameLogger().Warn("graceful stop finish")
 		break
 	case <-time.After(MaxWaitTime):
-		log.FrameLogger.Warn("The maximum wait time exceeded")
+		log.DefaultFrameLogger().Warn("The maximum wait time exceeded")
 		break
 	}
 	_ = syscall.Kill(syscall.Getpid(), syscall.SIGTERM)

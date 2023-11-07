@@ -91,7 +91,7 @@ func (a *artisanEntity) Start() error {
 
 func (a *artisanEntity) init() error {
 	//初始化日志客户端
-	//log.InitLog(a.opt.allowLogLevel, a.opt.logEncoding)
+	log.SetFrameLogger(a.opt.allowLogLevel, a.opt.logEncodeType)
 	return nil
 }
 
@@ -106,7 +106,7 @@ func (a *artisanEntity) Close() {
 	//框架相关
 	//应用相关
 	if err := a.closeBagger.Finish(); err != nil {
-		log.FrameLogger.Error(err.Error())
+		log.DefaultFrameLogger().Error(err.Error())
 	}
 }
 
@@ -123,7 +123,7 @@ func (a *artisanEntity) Use(handlers ...Handler) error {
 			//直接运行pre
 			err := handler.Pre()
 			if err != nil {
-				log.FrameLogger.Error(err.Error())
+				log.DefaultFrameLogger().Error(err.Error())
 				return err
 			}
 		}
