@@ -51,5 +51,7 @@ func gracefulShutdown(sig chan os.Signal, bagger ...bag.Bagger) {
 		log.DefaultFrameLogger().Warn("The maximum wait time exceeded")
 		break
 	}
-	_ = syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
+	//_ = syscall.Kill(syscall.Getpid(), syscall.SIGTERM) //该函数不支持windows
+	pro, _ := os.FindProcess(syscall.Getpid()) //为了支持windows编译
+	_ = pro.Kill()
 }
