@@ -10,6 +10,5 @@ type Config = rmqClient.Config
 func NewSimpleConsumer(config *Config, opts ...rmqClient.SimpleConsumerOption) (rmqClient.SimpleConsumer, error) {
 	//rmqClient.WithZapLogger(logx.GetLogger())
 	rmqClient.WithConnOptions()
-
 	return rmqClient.NewSimpleConsumer(config, opts...)
 }
