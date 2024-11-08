@@ -1,22 +1,22 @@
-package mysql_test
+package mysqlx_test
 
 import (
-	"github.com/bang-go/crab/core/db/mysql"
+	"github.com/bang-go/crab/core/db/mysqlx"
 	"gorm.io/gorm/schema"
 	"log"
 	"testing"
 )
 
 func TestConn(t *testing.T) {
-	opt := mysql.Config{
-		Dsn: mysql.DsnConfig{User: "test", Passwd: "test", Net: "tcp", Addr: "local:3306", DBName: "test", AllowNativePasswords: true},
-		Orm: mysql.GormConfig{
+	opt := mysqlx.Config{
+		Dsn: mysqlx.DsnConfig{User: "test", Passwd: "test", Net: "tcp", Addr: "local:3306", DBName: "test", AllowNativePasswords: true},
+		Orm: mysqlx.GormConfig{
 			NamingStrategy: schema.NamingStrategy{
 				SingularTable: true,
 			},
 		},
 	}
-	Client, err := mysql.New(&opt)
+	Client, err := mysqlx.New(&opt)
 	if err != nil {
 		log.Println(err)
 	}
