@@ -12,12 +12,15 @@ import "gorm.io/driver/mysql"
 type DsnConfig = driver.Config //DSN config
 type SqlConfig = mysql.Config
 type GormConfig = gorm.Config
-type Client = gorm.DB
 type PoolConfig struct {
 	MaxIdleConns    int           //最大空闲连接数,默认2
 	MaxOpenConns    int           //最大Open链接数,默认0 不限制
 	ConnMaxLifetime time.Duration //链接最大生命周期
 	ConnMaxIdleTime time.Duration //链接最大空闲周期
+}
+type Client struct {
+	db    *gorm.DB
+	sqlDB *sql.DB
 }
 type Config struct {
 	Ctx  context.Context
@@ -27,18 +30,19 @@ type Config struct {
 	Pool *PoolConfig
 }
 
-func New(conf *Config) (db *Client, err error) {
+func New(conf *Config) (client *Client, err error) {
+	client = &Client{}
 	conf.setDsn()
 	// DSN [username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]
-	db, err = gorm.Open(mysql.New(conf.Sql), &conf.Orm)
+	client.db, err = gorm.Open(mysql.New(conf.Sql), &conf.Orm)
 	if err != nil {
 		return
 	}
-	sqlDb, err := db.DB()
+	client.sqlDB, err = client.db.DB()
 	if err != nil {
 		return
 	}
-	conf.setPool(sqlDb) //设置连接池
+	conf.setPool(client.sqlDB) //设置连接池
 	return
 
 }
@@ -56,4 +60,14 @@ func (c *Config) setPool(sqlDB *sql.DB) {
 		sqlDB.SetConnMaxLifetime(c.Pool.ConnMaxLifetime)
 		sqlDB.SetConnMaxIdleTime(c.Pool.ConnMaxIdleTime)
 	}
+}
+
+func (s *Client) GetDB() *gorm.DB {
+	return s.db
+}
+func (s *Client) GetSqlDB() *sql.DB {
+	return s.sqlDB
+}
+func (s *Client) Close() error {
+	return s.sqlDB.Close()
 }

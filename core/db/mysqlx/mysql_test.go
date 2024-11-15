@@ -25,6 +25,6 @@ func TestConn(t *testing.T) {
 		Username string
 	}
 	user := &YwUser{}
-	Client.Find(user)
+	Client.GetDB().Find(user)
 	log.Println(user)
 }
