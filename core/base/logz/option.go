@@ -1,4 +1,4 @@
-package logx2
+package logz
 
 import (
 	"github.com/bang-go/opt"

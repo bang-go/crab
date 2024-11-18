@@ -3,6 +3,7 @@ package crab
 import (
 	"github.com/bang-go/crab/core/base/env"
 	"github.com/bang-go/crab/core/base/logx"
+	"github.com/bang-go/crab/core/base/logz"
 	"github.com/bang-go/crab/core/base/tracex/aliyun_trace"
 	"github.com/bang-go/crab/core/base/viperx"
 	"github.com/bang-go/opt"
@@ -41,10 +42,21 @@ func UseTraceByAliSLS(conf *aliyun_trace.Config) Handler {
 	}
 }
 
-func UseAppLog(opts ...opt.Option[logx.Options]) Handler {
+func UseAppLogx(opts ...opt.Option[logx.Options]) Handler {
 	return Handler{
 		Init: func() error {
 			logx.Build(opts...)
+			return nil
+		}, Close: func() error {
+			return nil
+		},
+	}
+}
+
+func UseAppLogz(opts ...opt.Option[logz.Options]) Handler {
+	return Handler{
+		Init: func() error {
+			logz.Build(opts...)
 			return nil
 		}, Close: func() error {
 			return nil
