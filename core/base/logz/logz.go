@@ -5,6 +5,7 @@ import (
 	"github.com/bang-go/opt"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 	"os"
 	"sync"
 	"syscall"
@@ -42,6 +43,7 @@ const (
 
 type Level = zapcore.Level
 type Logger = zap.Logger
+type FileConfig = lumberjack.Logger
 
 var (
 	Skip       = zap.Skip

@@ -4,14 +4,13 @@ import (
 	"github.com/bang-go/opt"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type Options struct {
 	callerSkip    int
 	logOutType    uint
 	logStdout     bool
-	logFileConfig *lumberjack.Logger
+	logFileConfig *FileConfig
 	levelEnabler  zapcore.LevelEnabler
 	zapOption     []zap.Option
 	zapEncoder    zapcore.Encoder
@@ -53,7 +52,7 @@ func WithOutStdout() opt.Option[Options] {
 	})
 }
 
-func WithOutFile(config *lumberjack.Logger) opt.Option[Options] {
+func WithOutFile(config *FileConfig) opt.Option[Options] {
 	return opt.OptionFunc[Options](func(o *Options) {
 		o.logFileConfig = config
 		o.logOutType |= 2
