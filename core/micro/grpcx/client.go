@@ -57,13 +57,13 @@ func (c *ClientEntity) Dial() (conn *grpc.ClientConn, err error) {
 	if !c.Secure {
 		baseClientOption = append(baseClientOption, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
-	if c.Trace {
-		traceOption := []grpc.DialOption{grpc.WithChainUnaryInterceptor(grpctrace.UnaryClientInterceptor()), grpc.WithChainStreamInterceptor(grpctrace.StreamClientInterceptor())}
-		if c.TraceFilter != nil {
-			traceOption = []grpc.DialOption{grpc.WithChainUnaryInterceptor(grpctrace.UnaryClientInterceptor(grpctrace.WithFilter(c.TraceFilter))), grpc.WithChainStreamInterceptor(grpctrace.StreamClientInterceptor(grpctrace.WithFilter(c.TraceFilter)))}
-		}
-		baseClientOption = append(baseClientOption, traceOption...)
-	}
+	//if c.Trace {
+	//	traceOption := []grpc.DialOption{grpc.WithChainUnaryInterceptor(grpctrace.UnaryClientInterceptor()), grpc.WithChainStreamInterceptor(grpctrace.StreamClientInterceptor())}
+	//	if c.TraceFilter != nil {
+	//		traceOption = []grpc.DialOption{grpc.WithChainUnaryInterceptor(grpctrace.UnaryClientInterceptor(grpctrace.WithFilter(c.TraceFilter))), grpc.WithChainStreamInterceptor(grpctrace.StreamClientInterceptor(grpctrace.WithFilter(c.TraceFilter)))}
+	//	}
+	//	baseClientOption = append(baseClientOption, traceOption...)
+	//}
 	c.dialOptions = append(baseClientOption, c.dialOptions...)
 	options := append(c.dialOptions, grpc.WithChainUnaryInterceptor(c.unaryInterceptors...), grpc.WithChainStreamInterceptor(c.streamInterceptors...))
 	c.conn, err = grpc.Dial(c.ClientConfig.Addr, options...)

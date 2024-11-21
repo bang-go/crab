@@ -76,13 +76,13 @@ func (s *ServerEntity) Start(register ServerRegisterFunc) (err error) {
 		grpclog.Fatalf("Failed to listen: %v", err)
 	}
 	baseOptions := []grpc.ServerOption{grpc.KeepaliveEnforcementPolicy(defaultServerKeepaliveEnforcementPolicy), grpc.KeepaliveParams(defaultServerKeepaliveParams)}
-	if s.Trace {
-		traceOption := []grpc.ServerOption{grpc.ChainUnaryInterceptor(grpctrace.UnaryServerInterceptor()), grpc.ChainStreamInterceptor(grpctrace.StreamServerInterceptor())}
-		if s.TraceFilter != nil {
-			traceOption = []grpc.ServerOption{grpc.ChainUnaryInterceptor(grpctrace.UnaryServerInterceptor(grpctrace.WithFilter(s.TraceFilter))), grpc.ChainStreamInterceptor(grpctrace.StreamServerInterceptor(grpctrace.WithFilter(s.TraceFilter)))}
-		}
-		baseOptions = append(baseOptions, traceOption...)
-	}
+	//if s.Trace {
+	//	traceOption := []grpc.ServerOption{grpc.ChainUnaryInterceptor(grpctrace.UnaryServerInterceptor()), grpc.ChainStreamInterceptor(grpctrace.StreamServerInterceptor())}
+	//	if s.TraceFilter != nil {
+	//		traceOption = []grpc.ServerOption{grpc.ChainUnaryInterceptor(grpctrace.UnaryServerInterceptor(grpctrace.WithFilter(s.TraceFilter))), grpc.ChainStreamInterceptor(grpctrace.StreamServerInterceptor(grpctrace.WithFilter(s.TraceFilter)))}
+	//	}
+	//	baseOptions = append(baseOptions, traceOption...)
+	//}
 
 	s.serverOptions = append(baseOptions, s.serverOptions...)
 	options := append(s.serverOptions, grpc.ChainUnaryInterceptor(s.unaryInterceptors...), grpc.ChainStreamInterceptor(s.streamInterceptors...))
