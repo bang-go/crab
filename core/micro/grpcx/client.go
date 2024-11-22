@@ -66,7 +66,8 @@ func (c *ClientEntity) Dial() (conn *grpc.ClientConn, err error) {
 	//}
 	c.dialOptions = append(baseClientOption, c.dialOptions...)
 	options := append(c.dialOptions, grpc.WithChainUnaryInterceptor(c.unaryInterceptors...), grpc.WithChainStreamInterceptor(c.streamInterceptors...))
-	c.conn, err = grpc.Dial(c.ClientConfig.Addr, options...)
+	//c.conn, err = grpc.Dial(c.ClientConfig.Addr, options...)
+	c.conn, err = grpc.NewClient(c.ClientConfig.Addr, options...)
 	return c.conn, err
 }
 
