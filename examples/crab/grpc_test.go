@@ -5,7 +5,7 @@ import (
 	"github.com/bang-go/crab"
 	"github.com/bang-go/crab/cmd"
 	"github.com/bang-go/crab/core/base/logx"
-	"github.com/bang-go/crab/core/micro/grpcx"
+	"github.com/bang-go/network/grpcx"
 	"google.golang.org/grpc"
 	"log"
 	"testing"

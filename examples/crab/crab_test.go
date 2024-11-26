@@ -7,7 +7,7 @@ import (
 )
 
 func baseSetting() {
-	err := crab.Use(crab.UseAppLog(), crab.UseViper(&viperx.Config{ConfigFormat: viperx.FileFormatYaml, ConfigPaths: []string{"./"}, ConfigNames: []string{"app"}}))
+	err := crab.Use(crab.UseAppLogx(), crab.UseViper(&viperx.Config{ConfigFormat: viperx.FileFormatYaml, ConfigPaths: []string{"./"}, ConfigNames: []string{"app"}}))
 	if err != nil {
 		log.Fatal(err)
 	}

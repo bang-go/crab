@@ -3,7 +3,7 @@ package tracex_test
 import (
 	"github.com/bang-go/crab"
 	"github.com/bang-go/crab/core/base/tracex"
-	"github.com/bang-go/crab/core/micro/httpx"
+	"github.com/bang-go/network/httpx"
 	"go.opentelemetry.io/otel/attribute"
 	"log"
 	"net/http"

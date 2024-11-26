@@ -4,8 +4,6 @@ import (
 	"context"
 	"github.com/bang-go/crab"
 	"github.com/bang-go/crab/core/base/tracex"
-	"github.com/bang-go/crab/core/micro/grpcx"
-	"github.com/bang-go/crab/core/micro/grpcx/metadatax"
 	pb "github.com/bang-go/crab/examples/proto/echo"
 	"github.com/bang-go/util"
 	"go.opentelemetry.io/otel/attribute"

@@ -3,8 +3,8 @@ package grpcx_test
 import (
 	"context"
 	"fmt"
-	"github.com/bang-go/crab/core/micro/grpcx"
 	pb "github.com/bang-go/crab/examples/proto/echo"
+	"github.com/bang-go/network/grpcx"
 	"google.golang.org/grpc"
 	"log"
 	"testing"

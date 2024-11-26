@@ -3,7 +3,6 @@ package tracex_test
 import (
 	"flag"
 	"github.com/bang-go/crab"
-	"github.com/bang-go/crab/core/base/logx"
 	"github.com/bang-go/crab/core/base/tracex/aliyun_trace"
 	"log"
 )
@@ -18,7 +17,7 @@ var (
 
 func InitFrame() {
 	flag.Parse()
-	crab.Build(crab.WithLogAllowLevel(logx2.WarnLevel))
+	crab.Build(crab.WithLogAllowLevel(logx.WarnLevel))
 	err := crab.Use(crab.UseAppEnv())
 	if err != nil {
 		log.Fatal(err)
