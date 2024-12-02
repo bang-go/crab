@@ -73,6 +73,7 @@ var (
 	Int32p     = zap.Int32p
 	Int64      = zap.Int64
 	Int64p     = zap.Int64p
+	Duration   = zap.Duration
 	Durationp  = zap.Durationp
 	Any        = zap.Any
 )
