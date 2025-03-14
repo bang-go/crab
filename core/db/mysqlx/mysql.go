@@ -71,3 +71,26 @@ func (s *Client) GetSqlDB() *sql.DB {
 func (s *Client) Close() error {
 	return s.sqlDB.Close()
 }
+
+type Transaction struct {
+	*Client
+	txDB *gorm.DB
+}
+
+func (s *Client) NewTransaction() *Transaction {
+	return &Transaction{Client: s}
+}
+
+func (s *Transaction) GetTxDB() *gorm.DB {
+	return s.txDB
+}
+
+func (s *Transaction) Begin() {
+	s.txDB = s.Client.db.Begin()
+}
+func (s *Transaction) Rollback() {
+	s.txDB.Rollback()
+}
+func (s *Transaction) Commit() {
+	s.txDB.Commit()
+}
