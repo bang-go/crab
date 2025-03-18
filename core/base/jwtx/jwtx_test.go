@@ -42,7 +42,7 @@ func TestParseToken(t *testing.T) {
 		return nil
 	})
 	if err != nil {
-		if err == jwt.ErrTokenExpired {
+		if errors.Is(err, jwt.ErrTokenExpired) {
 			log.Fatal("expired")
 		}
 		log.Fatal(err)
