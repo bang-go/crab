@@ -34,7 +34,7 @@ func TestGin(t *testing.T) {
 
 func setRoute(server ginx.Server) {
 	gp := server.Group("/")
-	gp.RouterHandle(http.MethodGet, "/health", func(c *gin.Context) {
+	gp.Handle(http.MethodGet, "/health", func(c *gin.Context) {
 		c.JSON(200, "success")
 	})
 }

@@ -4,8 +4,8 @@ go 1.23.2
 
 require (
 	github.com/alibaba/sentinel-golang v1.0.4
-	github.com/bang-go/micro v0.0.1
-	github.com/bang-go/network v0.0.1
+	github.com/bang-go/micro v0.1.0
+	github.com/bang-go/network v0.0.5
 	github.com/bang-go/opt v0.0.2
 	github.com/bang-go/util v0.1.1
 	github.com/gin-gonic/gin v1.10.0

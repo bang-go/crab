@@ -25,10 +25,10 @@ github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a/go.mod h1:DAHtR1m6l
 github.com/aws/aws-lambda-go v1.13.3/go.mod h1:4UKl9IzQMoD+QF79YdCuzCwp8VbmG4VAQwij/eHl5CU=
 github.com/aws/aws-sdk-go v1.27.0/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go-v2 v0.18.0/go.mod h1:JWVYvqSMppoMJC0x5wdwiImzgXTI9FuZwxzkQq9wy+g=
-github.com/bang-go/micro v0.0.1 h1:Evr97X1THPzP/1EdtJ/SQz++chxO7uSl3p6yjj7QCk8=
-github.com/bang-go/micro v0.0.1/go.mod h1:659FkZq6hVTIshRGl7cvCD4QV/G3BQPajE0UJzrZhMI=
-github.com/bang-go/network v0.0.1 h1:X6XjW7U1xr3oHQIBVuPDppq/6Z6vRlsZkKVCCwqZ/K0=
-github.com/bang-go/network v0.0.1/go.mod h1:UqwqBfNfPgpkhhrEyt5hXkC4/tJyl8+1DatoymnJ5Bo=
+github.com/bang-go/micro v0.1.0 h1:ZJBpqDCGeuguL/ngc6bgWyK4j1vFPYqLJ5wHQf6VNI4=
+github.com/bang-go/micro v0.1.0/go.mod h1:Z1/JD1ss33Q1nI2nfJJggAuwqU5d4rSNzRuMIF6yKLc=
+github.com/bang-go/network v0.0.5 h1:sAQzpZfKaS6A4F1P35pjXw6Sxo5PJbgE7dzHQmSJveo=
+github.com/bang-go/network v0.0.5/go.mod h1:GJAE37lMMf+deGSNBd16s94JDoPbmhCQwrcY1W/tm3c=
 github.com/bang-go/opt v0.0.2 h1:kuertp3O/YmrHeLHkNgHNJyNBuAHp7QUMr1gs6fNxfc=
 github.com/bang-go/opt v0.0.2/go.mod h1:KwqfP/1zbewrPjZFa6JWAf6O4fWH0YEiTrJgdOe9sLM=
 github.com/bang-go/util v0.1.1 h1:oGRI1jSeFC0tG2wWWAisvtJIzyq0kdYammaWzPyimLA=
