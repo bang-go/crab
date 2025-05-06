@@ -10,6 +10,11 @@ type UuidClaims struct {
 	jwt.RegisteredClaims
 }
 
+type UidClaims struct {
+	Uid uint64 `json:"uid"`
+	jwt.RegisteredClaims
+}
+
 type DefaultClaims struct {
 	jwt.RegisteredClaims
 }
