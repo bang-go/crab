@@ -2,6 +2,10 @@ package grpcx_test
 
 import (
 	"context"
+	"log"
+	"testing"
+	"time"
+
 	"github.com/alibaba/sentinel-golang/core/flow"
 	"github.com/alibaba/sentinel-golang/logging"
 	"github.com/bang-go/micro/throttle"
@@ -9,9 +13,6 @@ import (
 	"github.com/bang-go/network/grpcx/server_interceptor"
 	"github.com/bang-go/util"
 	"google.golang.org/grpc"
-	"log"
-	"testing"
-	"time"
 )
 
 import pb "github.com/bang-go/crab/examples/proto/echo"

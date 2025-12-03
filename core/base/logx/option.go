@@ -1,9 +1,10 @@
 package logx
 
 import (
+	"log/slog"
+
 	"github.com/bang-go/opt"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"log/slog"
 )
 
 type Options struct {

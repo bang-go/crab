@@ -2,19 +2,20 @@ package tracex_test
 
 import (
 	"context"
+	"log"
+	"testing"
+	"time"
+
 	"github.com/bang-go/crab"
 	"github.com/bang-go/crab/core/base/tracex"
 	pb "github.com/bang-go/crab/examples/proto/echo"
+	"github.com/bang-go/network/ginx"
+	"github.com/bang-go/network/grpcx"
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel/attribute"
-	"log"
-	"net/http"
-	"testing"
-	"time"
 )
 
 func TestGinServer(t *testing.T) {
-	InitFrame()
 	defer crab.Close()
 	var err error
 	server := ginx.New(&ginx.ServerConfig{Addr: ":8080", Trace: true})
@@ -26,8 +27,6 @@ func TestGinServer(t *testing.T) {
 }
 
 func route(server ginx.Server) {
-	gp := server.Group("/")
-	gp.RouterHandle(http.MethodGet, "health", healthHandle)
 }
 
 func healthHandle(c *gin.Context) {

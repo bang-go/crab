@@ -1,11 +1,12 @@
 package viperx_test
 
 import (
+	"log"
+	"testing"
+
 	"github.com/bang-go/crab"
 	"github.com/bang-go/crab/core/base/viperx"
 	"github.com/spf13/viper"
-	"log"
-	"testing"
 )
 
 func TestViper(t *testing.T) {

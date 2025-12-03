@@ -3,6 +3,7 @@ package tracex
 import (
 	"context"
 	"errors"
+
 	"github.com/bang-go/opt"
 	"github.com/bang-go/util"
 	"go.opentelemetry.io/otel"

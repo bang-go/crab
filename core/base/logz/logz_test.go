@@ -1,10 +1,11 @@
 package logz_test
 
 import (
-	"github.com/bang-go/crab/core/base/logz"
-	"gopkg.in/natefinch/lumberjack.v2"
 	"log"
 	"testing"
+
+	"github.com/bang-go/crab/core/base/logz"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func TestLogger(t *testing.T) {

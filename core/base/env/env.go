@@ -3,8 +3,9 @@ package env
 import (
 	"errors"
 	"fmt"
-	"github.com/bang-go/opt"
 	"os"
+
+	"github.com/bang-go/opt"
 )
 
 const (

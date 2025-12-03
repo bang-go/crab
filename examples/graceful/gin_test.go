@@ -1,14 +1,15 @@
 package graceful_test
 
 import (
+	"log"
+	"net/http"
+	"testing"
+
 	"github.com/bang-go/crab"
 	"github.com/bang-go/crab/cmd"
 	"github.com/bang-go/crab/core/base/logx"
 	"github.com/bang-go/network/ginx"
 	"github.com/gin-gonic/gin"
-	"log"
-	"net/http"
-	"testing"
 )
 
 func TestGin(t *testing.T) {

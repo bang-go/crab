@@ -1,8 +1,9 @@
 package httptrace
 
 import (
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"net/http"
+
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 var Transport = otelhttp.NewTransport(http.DefaultTransport)

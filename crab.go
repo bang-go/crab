@@ -2,6 +2,8 @@ package crab
 
 import (
 	"context"
+	"sync"
+
 	"github.com/bang-go/crab/cmd"
 	"github.com/bang-go/crab/core/base/logx"
 	"github.com/bang-go/crab/core/base/types"
@@ -11,7 +13,6 @@ import (
 	"github.com/bang-go/crab/internal/vars"
 	"github.com/bang-go/opt"
 	"github.com/spf13/cobra"
-	"sync"
 )
 
 type Handler struct {

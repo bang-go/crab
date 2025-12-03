@@ -1,11 +1,12 @@
 package aliyun_trace_test
 
 import (
+	"log"
+	"testing"
+
 	"github.com/bang-go/crab/core/base/tracex"
 	"github.com/bang-go/crab/core/base/tracex/aliyun_trace"
 	"go.opentelemetry.io/otel/attribute"
-	"log"
-	"testing"
 )
 
 func TestTrace(t *testing.T) {

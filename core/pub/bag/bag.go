@@ -1,8 +1,9 @@
 package bag
 
 import (
-	"github.com/bang-go/crab/core/base/types"
 	"sync"
+
+	"github.com/bang-go/crab/core/base/types"
 )
 
 type Bagger interface {

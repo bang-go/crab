@@ -1,9 +1,10 @@
 package log
 
 import (
+	"sync"
+
 	"github.com/bang-go/crab/core/base/logx"
 	"github.com/bang-go/opt"
-	"sync"
 )
 
 var (

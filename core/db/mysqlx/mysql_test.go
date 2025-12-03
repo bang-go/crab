@@ -1,10 +1,11 @@
 package mysqlx_test
 
 import (
-	"github.com/bang-go/crab/core/db/mysqlx"
-	"gorm.io/gorm/schema"
 	"log"
 	"testing"
+
+	"github.com/bang-go/crab/core/db/mysqlx"
+	"gorm.io/gorm/schema"
 )
 
 func TestConn(t *testing.T) {

@@ -3,6 +3,9 @@ package aliyun_trace
 import (
 	"context"
 	"errors"
+	"os"
+	"strings"
+
 	"github.com/bang-go/crab/core/base/tracex"
 	"go.opentelemetry.io/otel/attribute"
 	otlpTraceGrpc "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -12,8 +15,6 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.18.0"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/encoding/gzip"
-	"os"
-	"strings"
 )
 
 const (

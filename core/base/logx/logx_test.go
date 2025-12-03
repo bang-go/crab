@@ -1,9 +1,10 @@
 package logx_test
 
 import (
+	"testing"
+
 	"github.com/bang-go/crab/core/base/logx"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"testing"
 )
 
 func TestLogger(t *testing.T) {

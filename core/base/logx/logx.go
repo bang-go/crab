@@ -2,11 +2,12 @@ package logx
 
 import (
 	"context"
-	"github.com/bang-go/opt"
 	"io"
 	"log/slog"
 	"os"
 	"sync"
+
+	"github.com/bang-go/opt"
 )
 
 const (

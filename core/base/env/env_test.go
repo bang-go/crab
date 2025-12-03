@@ -1,9 +1,10 @@
 package env_test
 
 import (
-	"github.com/bang-go/crab/core/base/env"
 	"log"
 	"testing"
+
+	"github.com/bang-go/crab/core/base/env"
 )
 
 func TestAppEnv(t *testing.T) {

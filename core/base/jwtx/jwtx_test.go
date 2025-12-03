@@ -2,10 +2,11 @@ package jwtx
 
 import (
 	"errors"
-	"github.com/golang-jwt/jwt/v5"
 	"log"
 	"testing"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 var secret string = "password"

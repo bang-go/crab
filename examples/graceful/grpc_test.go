@@ -2,6 +2,10 @@ package graceful_test
 
 import (
 	"context"
+	"log"
+	"testing"
+	"time"
+
 	"github.com/bang-go/crab"
 	"github.com/bang-go/crab/cmd"
 	"github.com/bang-go/crab/core/base/logx"
@@ -9,9 +13,6 @@ import (
 	"github.com/bang-go/network/grpcx"
 	"github.com/bang-go/util"
 	"google.golang.org/grpc"
-	"log"
-	"testing"
-	"time"
 )
 
 type greeterWrapper struct {
@@ -28,7 +29,6 @@ func (g *greeterWrapper) ServerStreamingEcho(req *pb.EchoRequest, stream pb.Echo
 		_ = stream.Send(&pb.EchoResponse{Message: util.IntToString(util.IntRandRange(1, 100))})
 		time.Sleep(1 * time.Second)
 	}
-	return nil
 }
 func TestGrpcServer(t *testing.T) {
 	var err error

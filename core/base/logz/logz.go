@@ -2,13 +2,14 @@ package logz
 
 import (
 	"errors"
+	"os"
+	"sync"
+	"syscall"
+
 	"github.com/bang-go/opt"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"os"
-	"sync"
-	"syscall"
 )
 
 var (

@@ -2,15 +2,18 @@ package tracex_test
 
 import (
 	"context"
-	"github.com/bang-go/crab"
-	"github.com/bang-go/crab/core/base/tracex"
-	pb "github.com/bang-go/crab/examples/proto/echo"
-	"github.com/bang-go/util"
-	"go.opentelemetry.io/otel/attribute"
-	"google.golang.org/grpc"
 	"log"
 	"testing"
 	"time"
+
+	"github.com/bang-go/crab"
+	"github.com/bang-go/crab/core/base/tracex"
+	pb "github.com/bang-go/crab/examples/proto/echo"
+	"github.com/bang-go/network/grpcx"
+	"github.com/bang-go/network/grpcx/metadatax"
+	"github.com/bang-go/util"
+	"go.opentelemetry.io/otel/attribute"
+	"google.golang.org/grpc"
 )
 
 type greeterEntity struct {
@@ -39,7 +42,6 @@ func (g *greeterEntity) ServerStreamingEcho(req *pb.EchoRequest, stream pb.Echo_
 }
 
 func TestGrpcServer(t *testing.T) {
-	InitFrame()
 	defer crab.Close()
 	greeter := &greeterEntity{}
 	rpcServer := grpcx.NewServer(&grpcx.ServerConfig{Addr: ":8081", Trace: true})

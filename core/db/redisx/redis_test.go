@@ -2,8 +2,9 @@ package redisx_test
 
 import (
 	"context"
-	"github.com/bang-go/crab/core/db/redisx"
 	"testing"
+
+	"github.com/bang-go/crab/core/db/redisx"
 )
 
 func TestRedis(t *testing.T) {

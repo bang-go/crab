@@ -1,9 +1,10 @@
 package crab_test
 
 import (
+	"log"
+
 	"github.com/bang-go/crab"
 	"github.com/bang-go/crab/core/base/viperx"
-	"log"
 )
 
 func baseSetting() {
