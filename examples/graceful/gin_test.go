@@ -8,7 +8,7 @@ import (
 	"github.com/bang-go/crab"
 	"github.com/bang-go/crab/cmd"
 	"github.com/bang-go/crab/core/base/logx"
-	"github.com/bang-go/network/ginx"
+	"github.com/bang-go/micro/ginx"
 	"github.com/gin-gonic/gin"
 )
 

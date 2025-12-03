@@ -13,16 +13,14 @@ import (
 const (
 	LogOutByStdout = iota
 	LogOutByFile
-)
-const (
-	LogEncodeText = iota
-	LogEncodeJson
-)
-const (
 	LevelDebug = slog.LevelDebug
 	LevelInfo  = slog.LevelInfo
 	LevelWarn  = slog.LevelWarn
 	LevelError = slog.LevelError
+)
+const (
+	LogEncodeText = iota
+	LogEncodeJson
 )
 
 var (
@@ -42,26 +40,21 @@ func init() {
 func New(opts ...opt.Option[Options]) *Logger {
 	o := &Options{logLevel: logLevel, source: true}
 	opt.Each(o, opts...)
-	var w io.Writer
-	switch o.logOutType {
-	case LogOutByFile:
+	var w io.Writer = os.Stderr
+	if o.logOutType == LogOutByFile {
 		w = o.logFileConfig
-	default:
-		w = os.Stderr
 	}
-	var h slog.Handler
 	hOpts := &slog.HandlerOptions{AddSource: o.source, Level: o.logLevel}
-	switch o.logEncodeType {
-	case LogEncodeJson:
+	var h slog.Handler
+	if o.logEncodeType == LogEncodeJson {
 		h = slog.NewJSONHandler(w, hOpts)
-	default:
+	} else {
 		h = slog.NewTextHandler(w, hOpts)
 	}
 	return slog.New(h)
 }
 func Build(opts ...opt.Option[Options]) {
 	logger = New(opts...)
-	return
 }
 func SetLogger(l *slog.Logger) {
 	logger = l
@@ -70,9 +63,11 @@ func SetLoggerLevel(level slog.Level) {
 	logLevel.Set(level)
 }
 func Clone() *slog.Logger {
-	c := *logger
+	l := defaultLogger()
+	c := *l
 	return &c
 }
+
 func GetLogger() *slog.Logger {
 	return defaultLogger()
 }
@@ -80,7 +75,9 @@ func GetLogger() *slog.Logger {
 func defaultLogger() *slog.Logger {
 	if logger == nil {
 		m.Lock()
-		Build()
+		if logger == nil {
+			Build()
+		}
 		m.Unlock()
 	}
 	return logger

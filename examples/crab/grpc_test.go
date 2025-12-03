@@ -8,7 +8,7 @@ import (
 	"github.com/bang-go/crab"
 	"github.com/bang-go/crab/cmd"
 	"github.com/bang-go/crab/core/base/logx"
-	"github.com/bang-go/network/grpcx"
+	"github.com/bang-go/micro/grpcx"
 	"google.golang.org/grpc"
 )
 import pb "github.com/bang-go/crab/examples/proto/echo"

@@ -87,7 +87,7 @@ func (c *ClientEntity) defaultOptions() (opts *options, err error) {
 func (c *ClientEntity) Start(opts ...opt.Option[options]) error {
 	o, err := c.defaultOptions()
 	if err != nil {
-		return err //todo:日志
+		return err
 	}
 	opt.Each(o, opts...)
 	var exporter sdktrace.SpanExporter
@@ -102,8 +102,10 @@ func (c *ClientEntity) Start(opts ...opt.Option[options]) error {
 	baseOptions := []sdktrace.TracerProviderOption{sdktrace.WithSampler(o.sampler), sdktrace.WithResource(o.resource), sdktrace.WithBatcher(exporter)}
 	providerOptions := append(baseOptions, o.providerOptions...)
 	c.tp = sdktrace.NewTracerProvider(providerOptions...)
-	otel.SetTracerProvider(c.tp)                   //todo:
-	otel.SetTextMapPropagator(defaultPropagator()) //todo: ?
+	// 设置全局 TracerProvider，供整个应用使用
+	otel.SetTracerProvider(c.tp)
+	// 设置全局文本映射传播器，用于跨服务传播追踪上下文
+	otel.SetTextMapPropagator(defaultPropagator())
 	c.shutdown = func() {
 		_ = c.tp.Shutdown(context.Background())
 		_ = o.exporter.Shutdown(context.Background())
@@ -111,7 +113,9 @@ func (c *ClientEntity) Start(opts ...opt.Option[options]) error {
 	return nil
 }
 func (c *ClientEntity) Shutdown() {
-	c.shutdown()
+	if c.shutdown != nil {
+		c.shutdown()
+	}
 }
 
 func WithProviderOption(providers ...sdktrace.TracerProviderOption) opt.Option[options] {

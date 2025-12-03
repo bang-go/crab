@@ -8,9 +8,9 @@ import (
 
 	"github.com/alibaba/sentinel-golang/core/flow"
 	"github.com/alibaba/sentinel-golang/logging"
+	"github.com/bang-go/micro/grpcx"
+	"github.com/bang-go/micro/grpcx/server_interceptor"
 	"github.com/bang-go/micro/throttle"
-	"github.com/bang-go/network/grpcx"
-	"github.com/bang-go/network/grpcx/server_interceptor"
 	"github.com/bang-go/util"
 	"google.golang.org/grpc"
 )

@@ -6,18 +6,21 @@ import (
 	"time"
 
 	driver "github.com/go-sql-driver/mysql"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
-import "gorm.io/driver/mysql"
 
-type DsnConfig = driver.Config //DSN config
-type SqlConfig = mysql.Config
-type GormConfig = gorm.Config
+type (
+	DsnConfig  = driver.Config
+	SqlConfig  = mysql.Config
+	GormConfig = gorm.Config
+)
+
 type PoolConfig struct {
-	MaxIdleConns    int           //最大空闲连接数,默认2
-	MaxOpenConns    int           //最大Open链接数,默认0 不限制
-	ConnMaxLifetime time.Duration //链接最大生命周期
-	ConnMaxIdleTime time.Duration //链接最大空闲周期
+	MaxIdleConns    int
+	MaxOpenConns    int
+	ConnMaxLifetime time.Duration
+	ConnMaxIdleTime time.Duration
 }
 type Client struct {
 	db    *gorm.DB
@@ -31,29 +34,24 @@ type Config struct {
 	Pool *PoolConfig
 }
 
-func New(conf *Config) (client *Client, err error) {
-	client = &Client{}
+func New(conf *Config) (*Client, error) {
 	conf.setDsn()
-	// DSN [username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]
-	client.db, err = gorm.Open(mysql.New(conf.Sql), &conf.Orm)
+	db, err := gorm.Open(mysql.New(conf.Sql), &conf.Orm)
 	if err != nil {
-		return
+		return nil, err
 	}
-	client.sqlDB, err = client.db.DB()
+	sqlDB, err := db.DB()
 	if err != nil {
-		return
+		return nil, err
 	}
-	conf.setPool(client.sqlDB) //设置连接池
-	return
-
+	conf.setPool(sqlDB)
+	return &Client{db: db, sqlDB: sqlDB}, nil
 }
 
-// 解析DSN CONFIG到字符串
 func (c *Config) setDsn() {
 	c.Sql.DSN = c.Dsn.FormatDSN()
 }
 
-// SetPool 设置数据池
 func (c *Config) setPool(sqlDB *sql.DB) {
 	if c.Pool != nil {
 		sqlDB.SetMaxIdleConns(c.Pool.MaxIdleConns)
@@ -86,12 +84,22 @@ func (s *Transaction) GetTxDB() *gorm.DB {
 	return s.txDB
 }
 
-func (s *Transaction) Begin() {
+func (s *Transaction) Begin() error {
+	if s.Client == nil || s.Client.db == nil {
+		return gorm.ErrInvalidTransaction
+	}
 	s.txDB = s.Client.db.Begin()
+	return s.txDB.Error
 }
-func (s *Transaction) Rollback() {
-	s.txDB.Rollback()
+func (s *Transaction) Rollback() error {
+	if s.txDB == nil {
+		return gorm.ErrInvalidTransaction
+	}
+	return s.txDB.Rollback().Error
 }
-func (s *Transaction) Commit() {
-	s.txDB.Commit()
+func (s *Transaction) Commit() error {
+	if s.txDB == nil {
+		return gorm.ErrInvalidTransaction
+	}
+	return s.txDB.Commit().Error
 }

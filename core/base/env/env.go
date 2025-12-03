@@ -1,7 +1,6 @@
 package env
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
@@ -35,7 +34,7 @@ func Build(opts ...opt.Option[Options]) error {
 	switch appEnv {
 	case PROD, GRAY, PRE, TEST, DEV:
 	default:
-		return errors.New(fmt.Sprintf("Unknown environment variable: %s", appEnv))
+		return fmt.Errorf("unknown environment variable: %s", appEnv)
 	}
 	return nil
 }

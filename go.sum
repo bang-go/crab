@@ -27,6 +27,7 @@ github.com/aws/aws-sdk-go v1.27.0/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN
 github.com/aws/aws-sdk-go-v2 v0.18.0/go.mod h1:JWVYvqSMppoMJC0x5wdwiImzgXTI9FuZwxzkQq9wy+g=
 github.com/bang-go/micro v0.1.9 h1:3S92rRrtQO27Oa3e4cptykRL/oOLAlT9mOkV2Pk/wtg=
 github.com/bang-go/micro v0.1.9/go.mod h1:sMi+5t+7330gn0bOLFNbsBYsIMfS6eSUrcgaeIVX7xw=
+github.com/bang-go/micro v0.2.1/go.mod h1:bkLNuIJlus1UOPY+bXc7l1FNQqpiFmXiLl4NDCvd8dM=
 github.com/bang-go/network v0.0.9 h1:0j7gmCaWh6RispEjKXjo6/LBbTZa2UDQcUZtaym8DAI=
 github.com/bang-go/network v0.0.9/go.mod h1:2hJOzO9Dr/ID8q/7Tz5X6z5vGmYrDZztR1cnQTQQU+U=
 github.com/bang-go/opt v0.0.2 h1:kuertp3O/YmrHeLHkNgHNJyNBuAHp7QUMr1gs6fNxfc=
@@ -49,6 +50,7 @@ github.com/bytedance/sonic v1.14.2/go.mod h1:T80iDELeHiHKSc0C9tubFygiuXoGzrkjKzX
 github.com/bytedance/sonic/loader v0.4.0 h1:olZ7lEqcxtZygCK9EKYKADnpQoYkRQxaeY2NYzevs+o=
 github.com/bytedance/sonic/loader v0.4.0/go.mod h1:AR4NYCk5DdzZizZ5djGqQ92eEhCCcdf5x77udYiSJRo=
 github.com/casbin/casbin/v2 v2.1.2/go.mod h1:YcPU1XXisHhLzuxH9coDNf2FbKpjGlbCg3n9yuLkIJQ=
+github.com/cenkalti/backoff v2.2.1+incompatible h1:tNowT99t7UNflLxfYYSlKYsBpXdEet03Pg2g16Swow4=
 github.com/cenkalti/backoff v2.2.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=
 github.com/cenkalti/backoff/v5 v5.0.3 h1:ZN+IMa753KfX5hd8vVaMixjnqRZ3y8CuJKRKj1xcsSM=
 github.com/cenkalti/backoff/v5 v5.0.3/go.mod h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F97BxZthm/crw=

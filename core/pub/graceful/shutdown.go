@@ -23,16 +23,14 @@ func Register(f ...types.FuncErr) {
 
 func WatchSignal(done chan struct{}, extBagger ...bag.Bagger) {
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGKILL, syscall.SIGINT)
+	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
 	select {
 	case <-done:
-		break
+		log.DefaultFrameLogger().Info("application done signal received")
 	case s := <-sigChan:
 		log.DefaultFrameLogger().Warn("received signal", "sig", s.String())
-		break
 	}
-	bagger := append(extBagger, shutdownBag)
-	gracefulShutdown(sigChan, bagger...)
+	gracefulShutdown(sigChan, append(extBagger, shutdownBag)...)
 }
 
 func gracefulShutdown(sig chan os.Signal, bagger ...bag.Bagger) {
@@ -40,19 +38,18 @@ func gracefulShutdown(sig chan os.Signal, bagger ...bag.Bagger) {
 	ch := make(chan struct{}, 1)
 	go func() {
 		for _, b := range bagger {
-			_ = b.Finish()
+			if err := b.Finish(); err != nil {
+				log.DefaultFrameLogger().Error("error during shutdown", "error", err)
+			}
 		}
 		ch <- struct{}{}
 	}()
 	select {
 	case <-ch:
-		log.DefaultFrameLogger().Warn("graceful stop finish")
-		break
+		log.DefaultFrameLogger().Info("graceful shutdown completed")
 	case <-time.After(MaxWaitTime):
-		log.DefaultFrameLogger().Warn("The maximum wait time exceeded")
-		break
+		log.DefaultFrameLogger().Warn("graceful shutdown timeout exceeded")
 	}
-	//_ = syscall.Kill(syscall.Getpid(), syscall.SIGTERM) //该函数不支持windows
-	pro, _ := os.FindProcess(syscall.Getpid()) //为了支持windows编译
+	pro, _ := os.FindProcess(syscall.Getpid())
 	_ = pro.Kill()
 }

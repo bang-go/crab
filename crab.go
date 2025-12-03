@@ -16,9 +16,9 @@ import (
 )
 
 type Handler struct {
-	Pre   types.FuncErr //预加载
-	Init  types.FuncErr //初始化
-	Close types.FuncErr //关闭
+	Pre   types.FuncErr
+	Init  types.FuncErr
+	Close types.FuncErr
 }
 
 type Worker interface {
@@ -41,16 +41,18 @@ type artisanEntity struct {
 	appName     string
 }
 
-var art *artisanEntity
-var _ Worker = art
-var m sync.RWMutex
+var (
+	art  *artisanEntity
+	_    Worker = art
+	m    sync.RWMutex
+	once sync.Once
+)
 
-// Build creates a new ant instance.
 func Build(opts ...opt.Option[options]) {
-	var err error
 	o := &options{logOptions: logOptions{allowLogLevel: logx.LevelInfo, logEncodeType: logx.LogEncodeJson}, appName: vars.DefaultAppName.Load()}
 	opt.Each(o, opts...)
-	art = &artisanEntity{ctx: context.Background(),
+	art = &artisanEntity{
+		ctx:         context.Background(),
 		opt:         o,
 		preBagger:   bag.NewBagger(),
 		initBagger:  bag.NewBagger(),
@@ -59,15 +61,15 @@ func Build(opts ...opt.Option[options]) {
 		commandPtr:  cmd.RootCmd,
 		appName:     o.appName,
 	}
-	if err = art.init(); err != nil { //框架本身初始化加载
+	if err := art.init(); err != nil {
 		panic(err)
 	}
 }
 
 func defaultArtisan() *artisanEntity {
-	if art == nil {
+	once.Do(func() {
 		Build()
-	}
+	})
 	return art
 }
 
@@ -91,7 +93,6 @@ func (a *artisanEntity) Start() error {
 }
 
 func (a *artisanEntity) init() error {
-	//初始化日志客户端
 	log.SetFrameLogger(a.opt.allowLogLevel, a.opt.logEncodeType)
 	return nil
 }
@@ -102,10 +103,7 @@ func Close() {
 	defaultArtisan().Close()
 }
 
-// Close 停止
 func (a *artisanEntity) Close() {
-	//框架相关
-	//应用相关
 	if err := a.closeBagger.Finish(); err != nil {
 		log.DefaultFrameLogger().Error(err.Error())
 	}
@@ -121,9 +119,7 @@ func (a *artisanEntity) Use(handlers ...Handler) error {
 	for _, handler := range handlers {
 		if handler.Pre != nil {
 			a.preBagger.Register(handler.Pre)
-			//直接运行pre
-			err := handler.Pre()
-			if err != nil {
+			if err := handler.Pre(); err != nil {
 				log.DefaultFrameLogger().Error(err.Error())
 				return err
 			}
@@ -135,7 +131,6 @@ func (a *artisanEntity) Use(handlers ...Handler) error {
 			a.closeBagger.Register(handler.Close)
 		}
 	}
-
 	return nil
 }
 
@@ -170,6 +165,8 @@ func (a *artisanEntity) RegisterCloseBagger(f ...types.FuncErr) {
 }
 
 func Done() {
+	m.RLock()
+	defer m.RUnlock()
 	defaultArtisan().Done()
 }
 

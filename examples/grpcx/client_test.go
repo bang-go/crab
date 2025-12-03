@@ -8,7 +8,7 @@ import (
 	"time"
 
 	pb "github.com/bang-go/crab/examples/proto/echo"
-	"github.com/bang-go/network/grpcx"
+	"github.com/bang-go/micro/grpcx"
 	"google.golang.org/grpc"
 )
 

@@ -9,8 +9,8 @@ import (
 	"github.com/bang-go/crab"
 	"github.com/bang-go/crab/core/base/tracex"
 	pb "github.com/bang-go/crab/examples/proto/echo"
-	"github.com/bang-go/network/ginx"
-	"github.com/bang-go/network/grpcx"
+	"github.com/bang-go/micro/ginx"
+	"github.com/bang-go/micro/grpcx"
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel/attribute"
 )

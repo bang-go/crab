@@ -13,10 +13,8 @@ import (
 )
 
 var (
-	logger *zap.Logger
-	m      sync.Mutex
-)
-var (
+	logger              *zap.Logger
+	m                   sync.Mutex
 	defaultCallSkip     = 1
 	defaultLevelEnabler = zap.DebugLevel
 )
@@ -24,20 +22,15 @@ var (
 const (
 	DefaultConfigKindDev = iota
 	DefaultConfigKindProd
-)
-
-const (
 	LogOutByStdout = iota
 	LogOutByFile
-)
-const (
-	DebugLevel    = zap.DebugLevel  // -1
-	InfoLevel     = zap.InfoLevel   // 0, default level
-	WarnLevel     = zap.WarnLevel   // 1
-	ErrorLevel    = zap.ErrorLevel  // 2
-	DPanicLevel   = zap.DPanicLevel // 3, used in development log
-	PanicLevel    = zap.PanicLevel  // 4 // PanicLevel logs a message, then panics
-	FatalLevel    = zap.FatalLevel  // 5 // FatalLevel logs a message, then calls os.Exit(1).
+	DebugLevel    = zap.DebugLevel
+	InfoLevel     = zap.InfoLevel
+	WarnLevel     = zap.WarnLevel
+	ErrorLevel    = zap.ErrorLevel
+	DPanicLevel   = zap.DPanicLevel
+	PanicLevel    = zap.PanicLevel
+	FatalLevel    = zap.FatalLevel
 	EncodeJson    = "json"
 	EncodeConsole = "console"
 )
@@ -89,15 +82,11 @@ func New(opts ...opt.Option[Options]) *Logger {
 		o.logStdout = true
 		o.logOutType |= 1
 	}
-	if o.logOutType == 0 {
-		o.logStdout = true
-		o.logOutType |= 1
-	}
 	if o.zapEncoder == nil {
 		o.zapEncoder = NewDefaultDevEncoder()
 	}
-	writeSyncers := make([]zapcore.WriteSyncer, 0)
-	if o.logStdout == true {
+	var writeSyncers []zapcore.WriteSyncer
+	if o.logStdout {
 		writeSyncers = append(writeSyncers, zapcore.AddSync(os.Stdout))
 	}
 	if o.logFileConfig != nil {
@@ -111,7 +100,6 @@ func New(opts ...opt.Option[Options]) *Logger {
 
 func Build(opts ...opt.Option[Options]) {
 	logger = New(opts...)
-	return
 }
 
 func SetLogger(l *zap.Logger) {
@@ -121,7 +109,9 @@ func SetLogger(l *zap.Logger) {
 func defaultLogger() *zap.Logger {
 	if logger == nil {
 		m.Lock()
-		Build()
+		if logger == nil {
+			Build()
+		}
 		m.Unlock()
 	}
 	return logger
@@ -132,7 +122,8 @@ func GetLogger() *zap.Logger {
 }
 
 func Clone() *zap.Logger {
-	c := *logger
+	l := defaultLogger()
+	c := *l
 	return &c
 }
 

@@ -10,7 +10,7 @@ import (
 	"github.com/bang-go/crab/cmd"
 	"github.com/bang-go/crab/core/base/logx"
 	pb "github.com/bang-go/crab/examples/proto/echo"
-	"github.com/bang-go/network/grpcx"
+	"github.com/bang-go/micro/grpcx"
 	"github.com/bang-go/util"
 	"google.golang.org/grpc"
 )
