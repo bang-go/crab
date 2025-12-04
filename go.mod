@@ -4,14 +4,14 @@ go 1.25.5
 
 require (
 	github.com/alibaba/sentinel-golang v1.0.4
-	github.com/bang-go/micro v0.2.1
+	github.com/bang-go/micro v0.2.4
 	github.com/bang-go/opt v0.0.2
 	github.com/bang-go/util v0.1.4
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/redis/go-redis/v9 v9.17.2
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.63.0
