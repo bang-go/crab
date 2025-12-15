@@ -1,18 +1,12 @@
 package crab
 
 import (
-	"context"
+	"fmt"
 	"sync"
 
-	"github.com/bang-go/crab/cmd"
-	"github.com/bang-go/crab/core/base/logx"
 	"github.com/bang-go/crab/core/base/types"
 	"github.com/bang-go/crab/core/pub/bag"
 	"github.com/bang-go/crab/core/pub/graceful"
-	"github.com/bang-go/crab/internal/log"
-	"github.com/bang-go/crab/internal/vars"
-	"github.com/bang-go/opt"
-	"github.com/spf13/cobra"
 )
 
 type Handler struct {
@@ -23,153 +17,96 @@ type Handler struct {
 
 type Worker interface {
 	Use(...Handler) error
-	RegisterCmd(...cmd.Cmder)
-	Start() error
-	Close()
+	Run() error
+	Close() error
 	Done()
 }
 
-type artisanEntity struct {
-	ctx         context.Context
-	opt         *options
-	preBagger   bag.Bagger
+type crab struct {
 	initBagger  bag.Bagger
 	closeBagger bag.Bagger
 	done        chan struct{}
-	Cmds        []cmd.Cmder
-	commandPtr  *cobra.Command
-	appName     string
 }
 
 var (
-	art  *artisanEntity
-	_    Worker = art
-	m    sync.RWMutex
-	once sync.Once
+	instance *crab
+	_        Worker = instance
+	once     sync.Once
 )
 
-func Build(opts ...opt.Option[options]) {
-	o := &options{logOptions: logOptions{allowLogLevel: logx.LevelInfo, logEncodeType: logx.LogEncodeJson}, appName: vars.DefaultAppName.Load()}
-	opt.Each(o, opts...)
-	art = &artisanEntity{
-		ctx:         context.Background(),
-		opt:         o,
-		preBagger:   bag.NewBagger(),
-		initBagger:  bag.NewBagger(),
-		closeBagger: bag.NewBagger(),
-		done:        make(chan struct{}, 1),
-		commandPtr:  cmd.RootCmd,
-		appName:     o.appName,
-	}
-	if err := art.init(); err != nil {
-		panic(err)
-	}
-}
-
-func defaultArtisan() *artisanEntity {
+// New 创建全局单例 Crab 实例（使用 sync.Once 保证只创建一次）
+func New() Worker {
 	once.Do(func() {
-		Build()
+		instance = &crab{
+			initBagger:  bag.NewBagger(),
+			closeBagger: bag.NewBagger(),
+			done:        make(chan struct{}, 1),
+		}
 	})
-	return art
+	return instance
 }
 
-func Start() error {
-	m.RLock()
-	defer m.RUnlock()
-	return defaultArtisan().Start()
+func get() Worker {
+	return New()
 }
-func (a *artisanEntity) Start() error {
-	go graceful.WatchSignal(a.done, a.closeBagger)
-	if err := a.initBagger.Finish(); err != nil {
+
+func Run() error {
+	return get().Run()
+}
+
+func (c *crab) Run() error {
+	// 异步监听关闭信号
+	go graceful.WatchSignal(c.done, c.closeBagger)
+
+	// 执行 Init 阶段（Pre 已在 Use() 时执行）
+	// 如果业务的 Init 是阻塞的（如 gin.Run()），这里会阻塞
+	// 如果业务的 Init 是非阻塞的（如 Job），执行完就返回
+	if err := c.initBagger.Finish(); err != nil {
 		return err
 	}
-	if len(a.Cmds) > 0 {
-		for _, v := range a.Cmds {
-			a.commandPtr.AddCommand(v.Cmd())
-		}
-		return a.commandPtr.Execute()
+
+	return nil
+}
+
+func Close() error {
+	return get().Close()
+}
+
+func (c *crab) Close() error {
+	if err := c.closeBagger.Finish(); err != nil {
+		return fmt.Errorf("close bagger failed: %w", err)
 	}
 	return nil
 }
 
-func (a *artisanEntity) init() error {
-	log.SetFrameLogger(a.opt.allowLogLevel, a.opt.logEncodeType)
-	return nil
+func Use(handlers ...Handler) error {
+	return get().Use(handlers...)
 }
 
-func Close() {
-	m.RLock()
-	defer m.RUnlock()
-	defaultArtisan().Close()
-}
-
-func (a *artisanEntity) Close() {
-	if err := a.closeBagger.Finish(); err != nil {
-		log.DefaultFrameLogger().Error(err.Error())
-	}
-}
-
-func Use(Handlers ...Handler) error {
-	m.RLock()
-	defer m.RUnlock()
-	return defaultArtisan().Use(Handlers...)
-}
-
-func (a *artisanEntity) Use(handlers ...Handler) error {
+func (c *crab) Use(handlers ...Handler) error {
 	for _, handler := range handlers {
+		// Pre 阶段：立即执行（用于环境检查、配置加载等前置条件）
 		if handler.Pre != nil {
-			a.preBagger.Register(handler.Pre)
 			if err := handler.Pre(); err != nil {
-				log.DefaultFrameLogger().Error(err.Error())
-				return err
+				return fmt.Errorf("pre handler failed: %w", err)
 			}
 		}
+		// Init 阶段：注册到 initBagger，在 Start() 时执行
 		if handler.Init != nil {
-			a.initBagger.Register(handler.Init)
+			c.initBagger.Register(handler.Init)
 		}
+		// Close 阶段：注册到 closeBagger，在优雅关闭时执行
 		if handler.Close != nil {
-			a.closeBagger.Register(handler.Close)
+			c.closeBagger.Register(handler.Close)
 		}
 	}
 	return nil
-}
-
-func RegisterCmd(cmds ...cmd.Cmder) {
-	m.RLock()
-	defer m.RUnlock()
-	defaultArtisan().RegisterCmd(cmds...)
-}
-
-func (a *artisanEntity) RegisterCmd(cmds ...cmd.Cmder) {
-	a.Cmds = append(a.Cmds, cmds...)
-}
-
-func RegisterInitBagger(f ...types.FuncErr) {
-	m.RLock()
-	defer m.RUnlock()
-	defaultArtisan().RegisterInitBagger(f...)
-}
-
-func (a *artisanEntity) RegisterInitBagger(f ...types.FuncErr) {
-	a.initBagger.Register(f...)
-}
-
-func RegisterCloseBagger(f ...types.FuncErr) {
-	m.RLock()
-	defer m.RUnlock()
-	defaultArtisan().RegisterCloseBagger(f...)
-}
-
-func (a *artisanEntity) RegisterCloseBagger(f ...types.FuncErr) {
-	a.closeBagger.Register(f...)
 }
 
 func Done() {
-	m.RLock()
-	defer m.RUnlock()
-	defaultArtisan().Done()
+	get().Done()
 }
 
-func (a *artisanEntity) Done() {
-	a.done <- struct{}{}
+func (c *crab) Done() {
+	c.done <- struct{}{}
 }

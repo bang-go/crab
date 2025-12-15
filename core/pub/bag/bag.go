@@ -27,20 +27,24 @@ func (b *BaggerEntity) Register(f ...types.FuncErr) {
 	b.list = append(b.list, f...)
 }
 
-func (b *BaggerEntity) Finish() (err error) {
+func (b *BaggerEntity) Finish() error {
+	var err error
 	b.once.Do(func() {
 		b.m.RLock()
 		list := make([]types.FuncErr, len(b.list))
 		copy(list, b.list)
 		b.m.RUnlock()
 		for _, l := range list {
-			err = l()
-			if err != nil {
-				return
+			if e := l(); e != nil {
+				// 记录第一个错误并中断执行
+				if err == nil {
+					err = e
+				}
+				break
 			}
 		}
 	})
-	return
+	return err
 }
 
 func (b *BaggerEntity) Copy() Bagger {
