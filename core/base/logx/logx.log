@@ -1,6 +1,0 @@
-time=2025-12-14T13:33:41.021+08:00 level=INFO source=/Users/bamboo/Data/Project/bang-go/crab/core/base/logx/logx.go:98 msg="log file 1"
-time=2025-12-14T13:33:41.021+08:00 level=INFO source=/Users/bamboo/Data/Project/bang-go/crab/core/base/logx/logx.go:98 msg="log file 2" name=bale
-time=2025-12-14T15:05:13.289+08:00 level=INFO source=/Users/bamboo/Data/Project/bang-go/crab/core/base/logx/logx.go:115 msg="log file 1"
-time=2025-12-14T15:05:13.289+08:00 level=INFO source=/Users/bamboo/Data/Project/bang-go/crab/core/base/logx/logx.go:115 msg="log file 2" name=bale
-time=2025-12-14T15:07:30.426+08:00 level=INFO source=/Users/bamboo/Data/Project/bang-go/crab/core/base/logx/logx_test.go:25 msg="log file 1"
-time=2025-12-14T15:07:30.427+08:00 level=INFO source=/Users/bamboo/Data/Project/bang-go/crab/core/base/logx/logx_test.go:26 msg="log file 2" name=bale
