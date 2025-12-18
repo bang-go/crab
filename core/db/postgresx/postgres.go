@@ -180,3 +180,50 @@ func (c *Client) WithTransaction(fn func(tx *gorm.DB) error) error {
 	}
 	return c.db.Transaction(fn)
 }
+
+// Transaction 事务对象（手动管理模式）
+type Transaction struct {
+	*Client
+	txDB *gorm.DB
+}
+
+// NewTransaction 创建事务实例（不推荐直接使用，手动管理模式）
+func (c *Client) NewTransaction() *Transaction {
+	if c == nil {
+		return nil
+	}
+	return &Transaction{Client: c}
+}
+
+// DB 获取事务的 *gorm.DB 实例
+func (t *Transaction) DB() *gorm.DB {
+	if t == nil {
+		return nil
+	}
+	return t.txDB
+}
+
+// Begin 开始事务
+func (t *Transaction) Begin() error {
+	if t == nil || t.Client == nil || t.Client.db == nil {
+		return gorm.ErrInvalidTransaction
+	}
+	t.txDB = t.Client.db.Begin()
+	return t.txDB.Error
+}
+
+// Rollback 回滚事务
+func (t *Transaction) Rollback() error {
+	if t == nil || t.txDB == nil {
+		return gorm.ErrInvalidTransaction
+	}
+	return t.txDB.Rollback().Error
+}
+
+// Commit 提交事务
+func (t *Transaction) Commit() error {
+	if t == nil || t.txDB == nil {
+		return gorm.ErrInvalidTransaction
+	}
+	return t.txDB.Commit().Error
+}
