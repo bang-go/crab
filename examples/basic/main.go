@@ -1,29 +1,30 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"log"
+
 	"github.com/bang-go/crab"
-	"github.com/bang-go/crab/core/base/env"
-	"github.com/bang-go/crab/core/base/logx"
 )
 
 func main() {
-	app := crab.New()
-	defer app.Close() // 确保资源清理
+	// 方式 1: 使用默认实例
+	crab.Add(crab.Hook{
+		OnStart: func(ctx context.Context) error {
+			fmt.Println("Setting up environment...")
+			return nil
+		},
+	})
 
-	// Setup - 立即设置环境
-	crab.Setup(
-		func() error { return env.Build(env.WithAppEnv(env.DEV)) },
-		func() error { logx.Build(logx.WithLevel(logx.LevelInfo)); return nil },
-	)
+	crab.Add(crab.Hook{
+		OnStart: func(ctx context.Context) error {
+			log.Println("应用启动")
+			return nil
+		},
+	})
 
-	// Use - 注册资源生命周期
-	crab.Use(crab.StartOnly(func() error {
-		logx.Info("应用启动", "env", env.AppEnv())
-		return nil
-	}))
-
-	// Run - 运行应用
-	if err := app.Run(); err != nil {
-		logx.Error("应用错误", "error", err)
+	if err := crab.Run(); err != nil {
+		log.Printf("应用错误: %v", err)
 	}
 }

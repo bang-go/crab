@@ -1,146 +1,318 @@
 package crab
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"sync"
 	"syscall"
+	"time"
 
-	"github.com/bang-go/crab/core/base/types"
-	"github.com/bang-go/crab/core/pub/bag"
+	"github.com/bang-go/crab/pkg/types"
 )
 
-type Handler struct {
-	Start types.FuncErr
-	Close types.FuncErr
+// Logger 定义日志接口 (兼容 bang-go/micro/logger)
+type Logger interface {
+	Info(ctx context.Context, msg string, args ...interface{})
+	Error(ctx context.Context, msg string, args ...interface{})
 }
 
-// StartOnly 创建只包含 Start 的 Handler
-func StartOnly(start types.FuncErr) Handler {
-	return Handler{Start: start}
+// Hook 定义应用生命周期中的一个钩子
+type Hook struct {
+	Name    string // 组件名称，用于日志标识
+	OnStart types.Runner
+	OnStop  types.Stopper
 }
 
-// StartClose 创建包含 Start 和 Close 的 Handler
-func StartClose(start, close types.FuncErr) Handler {
-	return Handler{Start: start, Close: close}
+// Option 定义配置选项
+type Option func(*App)
+
+// App 应用实例
+type App struct {
+	ctx             context.Context
+	cancel          context.CancelFunc
+	hooks           []Hook
+	shutdownTimeout time.Duration
+	startupTimeout  time.Duration // 启动超时
+	signals         []os.Signal
+	logger          Logger // 日志接口
+	mu              sync.Mutex
+	state           state
 }
 
-// CloseOnly 创建只包含 Close 的 Handler
-func CloseOnly(close types.FuncErr) Handler {
-	return Handler{Close: close}
-}
+type state int
 
-type Worker interface {
-	Use(...Handler)
-	Setup(...types.FuncErr) error
-	Run() error
-	Close() error
-}
-
-type crab struct {
-	startBagger bag.Bagger
-	closeBagger bag.Bagger
-	closeOnce   sync.Once // 确保 Close 只执行一次
-}
-
-var (
-	instance *crab
-	_        Worker = instance
-	once     sync.Once
+const (
+	stateNew state = iota
+	stateStarting
+	stateRunning
+	stateStopping
+	stateStopped
 )
 
-// New 创建全局单例 Crab 实例（使用 sync.Once 保证只创建一次）
-func New() Worker {
-	once.Do(func() {
-		instance = &crab{
-			startBagger: bag.NewBagger(),
-			closeBagger: bag.NewBagger(),
-		}
-	})
-	return instance
+// New 创建一个新的应用实例
+func New(opts ...Option) *App {
+	ctx, cancel := context.WithCancel(context.Background())
+	app := &App{
+		ctx:             ctx,
+		cancel:          cancel,
+		shutdownTimeout: 10 * time.Second,
+		startupTimeout:  0, // 默认无超时
+		signals:         []os.Signal{syscall.SIGTERM, syscall.SIGINT},
+		state:           stateNew,
+	}
+
+	for _, opt := range opts {
+		opt(app)
+	}
+
+	return app
 }
 
-func get() Worker {
-	return New()
+// WithContext 设置基础 Context
+func WithContext(ctx context.Context) Option {
+	return func(a *App) {
+		a.ctx, a.cancel = context.WithCancel(ctx)
+	}
 }
 
-func Run() error {
-	return get().Run()
+// WithShutdownTimeout 设置关闭超时时间
+func WithShutdownTimeout(d time.Duration) Option {
+	return func(a *App) {
+		a.shutdownTimeout = d
+	}
 }
 
-func (c *crab) Run() error {
-	// 异步监听关闭信号（优雅关闭）
-	go func() {
-		sigChan := make(chan os.Signal, 1)
-		signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
-		<-sigChan
+// WithStartupTimeout 设置启动超时时间
+func WithStartupTimeout(d time.Duration) Option {
+	return func(a *App) {
+		a.startupTimeout = d
+	}
+}
 
-		// 接收到信号，执行清理
-		_ = c.close()
+// WithSignals 设置监听的系统信号
+func WithSignals(signals ...os.Signal) Option {
+	return func(a *App) {
+		a.signals = signals
+	}
+}
 
-		// 退出进程
-		os.Exit(0)
-	}()
+// WithLogger 设置日志接口
+func WithLogger(l Logger) Option {
+	return func(a *App) {
+		a.logger = l
+	}
+}
 
-	// 执行 Start 阶段（Setup 已在调用时立即执行）
-	// 如果业务的 Start 是阻塞的（如 HTTP 服务），这里会阻塞
-	// 如果业务的 Start 是非阻塞的（如定时任务），执行完就返回
-	if err := c.startBagger.Finish(); err != nil {
+// Add 注册一个生命周期钩子
+func (a *App) Add(hook Hook) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	// 如果应用已经启动，禁止添加新的钩子，以确保启动顺序的确定性
+	if a.state > stateNew {
+		panic("crab: cannot add hook after app has started")
+	}
+	a.hooks = append(a.hooks, hook)
+}
+
+// IsRunning 返回应用是否处于运行状态（Ready）
+func (a *App) IsRunning() bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.state == stateRunning
+}
+
+// Run 启动应用并阻塞，直到收到信号或发生错误
+func (a *App) Run() error {
+	if !a.changeState(stateNew, stateStarting) {
+		return errors.New("app already started")
+	}
+
+	a.log("App starting...")
+	startBegin := time.Now()
+
+	// 1. 启动流程 (带超时控制)
+	if err := a.runStartWithTimeout(); err != nil {
+		// 启动失败，执行回滚（停止已启动的组件）
+		a.log("App start failed. Rolling back...", "error", err)
+		_ = a.stop(context.Background())
 		return err
 	}
 
+	a.log("App started successfully", "cost", time.Since(startBegin))
+	a.changeState(stateStarting, stateRunning)
+
+	// 2. 等待信号
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, a.signals...)
+
+	select {
+	case sig := <-c:
+		a.log("Received signal", "signal", sig)
+		signal.Stop(c)
+	case <-a.ctx.Done():
+		a.log("Context canceled")
+	}
+
+	// 3. 关闭流程
+	return a.Stop(context.Background())
+}
+
+// Stop 手动停止应用
+func (a *App) Stop(ctx context.Context) error {
+	a.mu.Lock()
+	if a.state == stateStopping || a.state == stateStopped {
+		a.mu.Unlock()
+		return nil
+	}
+	a.state = stateStopping
+	a.mu.Unlock()
+
+	a.log("App stopping...")
+	a.cancel() // 取消主 Context
+
+	// 创建带超时的 context 用于停止流程
+	shutdownCtx, cancel := context.WithTimeout(ctx, a.shutdownTimeout)
+	defer cancel()
+
+	return a.stop(shutdownCtx)
+}
+
+func (a *App) changeState(from, to state) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.state != from {
+		return false
+	}
+	a.state = to
+	return true
+}
+
+// runStartWithTimeout 包装启动流程，支持超时
+func (a *App) runStartWithTimeout() error {
+	if a.startupTimeout > 0 {
+		ctx, cancel := context.WithTimeout(a.ctx, a.startupTimeout)
+		defer cancel()
+
+		done := make(chan error, 1)
+		go func() {
+			done <- a.start(ctx) // 将带超时的 Context 传递给 Hook
+		}()
+
+		select {
+		case err := <-done:
+			return err
+		case <-ctx.Done():
+			return fmt.Errorf("app startup timed out after %v", a.startupTimeout)
+		}
+	}
+	return a.start(a.ctx)
+}
+
+func (a *App) start(ctx context.Context) error {
+	for i, hook := range a.hooks {
+		name := hook.Name
+		if name == "" {
+			name = fmt.Sprintf("hook#%d", i)
+		}
+
+		// 检查超时
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+
+		if hook.OnStart != nil {
+			a.log("Starting component...", "name", name)
+			start := time.Now()
+			if err := safeCall(ctx, hook.OnStart); err != nil {
+				return fmt.Errorf("failed to start [%s]: %w", name, err)
+			}
+			a.log("Started component", "name", name, "cost", time.Since(start))
+		}
+
+		a.mu.Lock()
+		a.hooks[i].OnStop = hook.OnStop // 确保 stop 逻辑存在
+		a.mu.Unlock()
+	}
 	return nil
 }
 
-func Close() error {
-	return get().Close()
-}
+func (a *App) stop(ctx context.Context) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
-// Close 公开方法，供业务方调用（推荐使用 defer app.Close()）
-func (c *crab) Close() error {
-	return c.close()
-}
-
-// close 私有方法，由信号处理器调用
-func (c *crab) close() error {
-	var err error
-	c.closeOnce.Do(func() {
-		if e := c.closeBagger.Finish(); e != nil {
-			err = fmt.Errorf("close bagger failed: %w", e)
+	var errs []error
+	for i := len(a.hooks) - 1; i >= 0; i-- {
+		hook := a.hooks[i]
+		name := hook.Name
+		if name == "" {
+			name = fmt.Sprintf("hook#%d", i)
 		}
-	})
-	return err
-}
 
-func Use(handlers ...Handler) {
-	get().Use(handlers...)
-}
+		if hook.OnStop != nil {
+			if ctx.Err() != nil {
+				return fmt.Errorf("shutdown aborted: %w", ctx.Err())
+			}
 
-func (c *crab) Use(handlers ...Handler) {
-	for _, handler := range handlers {
-		// Start 阶段：注册到 startBagger，在 Run() 时执行
-		if handler.Start != nil {
-			c.startBagger.Register(handler.Start)
-		}
-		// Close 阶段：注册到 closeBagger，在优雅关闭时执行
-		if handler.Close != nil {
-			c.closeBagger.Register(handler.Close)
-		}
-	}
-}
-
-func Setup(fns ...types.FuncErr) error {
-	return get().Setup(fns...)
-}
-
-func (c *crab) Setup(fns ...types.FuncErr) error {
-	for _, fn := range fns {
-		if fn != nil {
-			if err := fn(); err != nil {
-				return fmt.Errorf("setup failed: %w", err)
+			a.log("Stopping component...", "name", name)
+			start := time.Now()
+			if err := safeCall(ctx, func(c context.Context) error { return hook.OnStop(c) }); err != nil {
+				a.err("Failed to stop component", "name", name, "error", err)
+				errs = append(errs, fmt.Errorf("[%s] stop failed: %w", name, err))
+			} else {
+				a.log("Stopped component", "name", name, "cost", time.Since(start))
 			}
 		}
 	}
+
+	a.state = stateStopped
+	if len(errs) > 0 {
+		return fmt.Errorf("shutdown errors: %v", errs)
+	}
+	a.log("App stopped")
 	return nil
+}
+
+func safeCall(ctx context.Context, fn types.Runner) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic recovered: %v\nstack: %s", r, debug.Stack())
+		}
+	}()
+	return fn(ctx)
+}
+
+func (a *App) log(msg string, args ...interface{}) {
+	if a.logger != nil {
+		a.logger.Info(context.Background(), msg, args...)
+	}
+}
+
+func (a *App) err(msg string, args ...interface{}) {
+	if a.logger != nil {
+		a.logger.Error(context.Background(), msg, args...)
+	}
+}
+
+// 全局默认实例
+var std = New()
+
+func Add(hook Hook) {
+	std.Add(hook)
+}
+
+func Run() error {
+	return std.Run()
+}
+
+func IsRunning() bool {
+	return std.IsRunning()
+}
+
+// SetLogger 为默认实例设置日志
+func SetLogger(l Logger) {
+	std.logger = l
 }

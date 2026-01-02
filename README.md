@@ -1,340 +1,147 @@
-## 概览
+# Crab
 
-Crab 是一个简洁优雅的 Go 微服务框架，提供生命周期管理、优雅关闭等开箱即用的能力。
+Crab 是一个轻量级、企业级的 Go 应用生命周期管理框架。它提供了确定性的启动/关闭流程、依赖顺序管理、以及完整的可观测性支持，旨在作为构建微服务和云原生应用的稳健脚手架。
 
-## 核心理念
+## ✨ 核心特性
 
-**简洁 · 透明 · 可控**
+*   **确定性生命周期**：
+    *   **启动 (FIFO)**：严格按照 `Add` 顺序同步执行，确保配置 -> 数据库 -> 服务的依赖初始化顺序。
+    *   **关闭 (LIFO)**：严格按照逆序关闭，确保上层服务先停止，底层资源后释放。
+*   **企业级可观测性**：
+    *   **结构化日志集成**：零适配器兼容 `slog` 及主流微服务框架日志接口，记录启动/停止耗时、组件名称等关键信息。
+    *   **启动超时控制**：支持设置全局启动超时 (`WithStartupTimeout`)，防止应用初始化死锁或挂起。
+    *   **组件耗时统计**：自动追踪并打印每个组件的启动/停止耗时，快速定位慢启动问题。
+*   **健壮性与安全**：
+    *   **自动回滚**：启动失败自动逆序清理已申请的资源。
+    *   **Panic 隔离**：内置 Recover 机制，防止单组件崩溃导致进程退出。
+    *   **状态保护**：应用启动后自动锁定 Hook 列表，防止运行时竞态。
+*   **云原生友好**：
+    *   **健康检测**：提供 `IsRunning()` 接口，用于 K8S Readiness Probe。
+    *   **优雅停机**：监听系统信号，支持关闭超时控制。
 
-- ✅ **极简 API** - 仅 4 个核心方法，易学易用
-- ✅ **生命周期管理** - Setup/Start/Close 三阶段清晰明确
-- ✅ **优雅关闭** - 自动处理信号，安全关闭资源
-- ✅ **错误上抛** - 框架不输出日志，业务层统一处理
-- ✅ **类型透明** - 直接使用第三方库，无过度封装
-
-## 安装
+## 📦 安装
 
 ```bash
 go get github.com/bang-go/crab
 ```
 
-## 快速开始
+## 🚀 快速开始
 
-### 基础示例
+### 基础用法
 
 ```go
 package main
 
 import (
-    "github.com/bang-go/crab"
-    "github.com/bang-go/crab/core/base/env"
-    "github.com/bang-go/crab/core/base/logx"
+	"context"
+	"log"
+	"net/http"
+	"time"
+
+	"github.com/bang-go/crab"
 )
 
 func main() {
-    app := crab.New()
-    defer app.Close()  // 确保资源清理
-    
-    // Setup - 立即设置环境
-    crab.Setup(
-        func() error { return env.Build(env.WithAppEnv(env.DEV)) },
-        func() error { logx.Build(logx.WithLevel(logx.LevelInfo)); return nil },
-    )
-    
-    // Use - 注册资源生命周期
-    crab.Use(crab.StartOnly(func() error {
-        logx.Info("应用启动", "env", env.AppEnv())
-        return nil
-    }))
-    
-    // Run - 运行应用
-    if err := app.Run(); err != nil {
-        logx.Error("应用错误", "error", err)
-    }
+	// 1. 初始化应用 (支持 Options)
+	app := crab.New(
+		crab.WithStartupTimeout(5*time.Second),  // 启动超时
+		crab.WithShutdownTimeout(10*time.Second), // 关闭超时
+	)
+
+	// 2. 注册组件 (按依赖顺序)
+	
+	// 组件 A: 配置加载
+	app.Add(crab.Hook{
+		Name: "Config",
+		OnStart: func(ctx context.Context) error {
+			// Load config...
+			return nil
+		},
+	})
+
+	// 组件 B: HTTP 服务 (依赖配置)
+	var server *http.Server
+	app.Add(crab.Hook{
+		Name: "HTTPServer",
+		OnStart: func(ctx context.Context) error {
+			server = &http.Server{Addr: ":8080"}
+			go server.ListenAndServe()
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			return server.Shutdown(ctx)
+		},
+	})
+
+	// 3. 运行
+	if err := app.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
 ```
 
-### 完整示例
+### 集成日志与可观测性
+
+Crab 的 `Logger` 接口设计兼容 `slog` 和主流框架（如 `bang-go/micro`）：
 
 ```go
-func main() {
-    app := crab.New()
-    defer app.Close()  // 确保资源清理
-    
-    // 🔧 Setup 阶段 - 准备环境（立即执行）
-    crab.Setup(
-        func() error { return env.Build(env.WithAppEnv(env.PROD)) },
-        func() error { return viperx.Build(&viperx.Config{...}) },
-        func() error { logx.Build(logx.WithLevel(logx.LevelInfo)); return nil },
-    )
-    
-    // 📦 Use 阶段 - 注册资源生命周期
-    
-    // 数据库 - 需要启动和关闭
-    var db *gorm.DB
-    crab.Use(crab.StartClose(
-        func() error {
-            var err error
-            db, err = gorm.Open(...)
-            return err
-        },
-        func() error {
-            sqlDB, _ := db.DB()
-            return sqlDB.Close()
-        },
-    ))
-    
-    // 缓存预热 - 只需要启动
-    crab.Use(crab.StartOnly(func() error {
-        return cache.WarmUp()
-    }))
-    
-    // HTTP 服务器
-    var server *http.Server
-    crab.Use(crab.StartClose(
-        func() error {
-            server = &http.Server{Addr: ":8080", Handler: router}
-            return server.ListenAndServe()
-        },
-        func() error {
-            ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-            defer cancel()
-            return server.Shutdown(ctx)
-        },
-    ))
-    
-    // 🚀 Run 阶段 - 运行应用
-    if err := app.Run(); err != nil {
-        logx.Error("应用错误", "error", err)
-    }
+type Logger interface {
+    Info(ctx context.Context, msg string, args ...interface{})
+    Error(ctx context.Context, msg string, args ...interface{})
 }
 ```
 
-## 核心概念
-
-### Worker 接口
-
-Crab 提供简洁的 Worker 接口：
+**集成示例：**
 
 ```go
-type Worker interface {
-    Setup(...types.FuncErr) error  // 立即设置环境
-    Use(...Handler)                 // 注册资源生命周期
-    Run() error                     // 运行应用
-}
-```
+// 假设这是您的业务 Logger (例如封装了 slog)
+logger := myLogger.New()
 
-### Handler 构造器
-
-Crab 提供三个构造器函数，覆盖所有场景：
-
-```go
-// 只需要启动（如缓存预热、数据加载）
-func StartOnly(start types.FuncErr) Handler
-
-// 需要启动和关闭（如数据库、服务器）
-func StartClose(start, close types.FuncErr) Handler
-
-// 只需要清理（极少见）
-func CloseOnly(close types.FuncErr) Handler
-```
-
-### 生命周期
-
-Crab 使用三阶段生命周期管理：
-
-```
-Setup（准备阶段） → Use（配置阶段） → Run（运行阶段） → Close（清理阶段）
-   ↓                    ↓                  ↓                 ↓
-立即执行              注册资源        触发 Start        触发 Close
-环境、配置、日志    数据库、服务器    启动资源          清理资源
-```
-
-**执行时机**：
-- **Setup** - 调用时立即执行，用于环境准备
-- **Start** - Run() 时执行，用于启动资源
-- **Close** - 信号触发或 defer 执行，用于清理资源
-
-**重要**：推荐使用 `defer app.Close()` 确保资源清理，特别是在一次性 Job 场景下。
-
-## 使用场景
-
-### 场景 1: 环境、配置、日志初始化
-
-```go
-app := crab.New()
-defer app.Close()  // 确保资源清理
-
-crab.Setup(
-    func() error { return env.Build(env.WithAppEnv(env.PROD)) },
-    func() error { return viperx.Build(&viperx.Config{...}) },
-    func() error { logx.Build(logx.WithLevel(logx.LevelInfo)); return nil },
+app := crab.New(
+    crab.WithLogger(logger), // 直接注入，无需适配器
 )
+
+// 启动时控制台将输出结构化日志：
+// [INFO] Starting component... name=HTTPServer
+// [INFO] Started component name=HTTPServer cost=50ms
 ```
 
-### 场景 2: 数据库连接（需要关闭）
+### K8S 健康检测集成
+
+利用 `IsRunning()` 实现准确的 Readiness Probe：
 
 ```go
-var db *gorm.DB
-
-app := crab.New()
-defer app.Close()  // 确保数据库连接被关闭
-
-crab.Use(crab.StartClose(
-    func() error {
-        var err error
-        db, err = gorm.Open(...)
-        return err
-    },
-    func() error {
-        sqlDB, _ := db.DB()
-        return sqlDB.Close()
-    },
-))
+http.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+    if crab.IsRunning() {
+        w.WriteHeader(200)
+        w.Write([]byte("ok"))
+    } else {
+        w.WriteHeader(503)
+    }
+})
 ```
 
-### 场景 3: 缓存预热（无需关闭）
+## ⚙️ 配置选项 (Options)
 
-```go
-app := crab.New()
-defer app.Close()  // 确保资源清理
+| Option | 说明 | 默认值 |
+|--------|------|--------|
+| `WithStartupTimeout(d)` | 应用启动最大允许耗时，超时则回滚 | 0 (无超时) |
+| `WithShutdownTimeout(d)` | 优雅关闭最大等待时间 | 10s |
+| `WithLogger(l)` | 注入日志接口，开启内部日志输出 | nil (静默) |
+| `WithContext(ctx)` | 设置应用根 Context | context.Background() |
+| `WithSignals(sigs...)` | 设置监听的系统信号 | SIGINT, SIGTERM |
 
-crab.Use(crab.StartOnly(func() error {
-    return cache.WarmUp()
-}))
-```
+## 💡 最佳实践
 
-### 场景 4: HTTP 服务器
+1.  **依赖顺序**：始终按照 `配置 -> 基础设施(DB/Redis) -> 业务服务 -> 对外接口` 的顺序注册 Hook。
+2.  **闭包取值**：在 `OnStart` 内部读取配置值，而不是在 `Add` 时读取，以确保配置已加载（延迟求值）。
+3.  **命名组件**：为每个 Hook 设置 `Name`，以便在日志中快速定位启动慢的组件。
+4.  **业务 Context**：Crab 仅管理应用生命周期，业务请求的 Context（TraceID 等）应由 Web/RPC 框架处理。
 
-```go
-var server *http.Server
+## 🤝 贡献
 
-app := crab.New()
-defer app.Close()  // 确保资源清理
+欢迎提交 Issue 和 PR！
 
-crab.Use(crab.StartClose(
-    func() error {
-        server = &http.Server{Addr: ":8080", Handler: router}
-        return server.ListenAndServe()  // 阻塞，直到 Shutdown
-    },
-    func() error {
-        ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-        defer cancel()
-        return server.Shutdown(ctx)
-    },
-))
-
-// Run() 阻塞在 ListenAndServe
-// 按 Ctrl+C 触发优雅关闭
-app.Run()
-```
-
-### 场景 5: 定时任务
-
-```go
-app := crab.New()
-defer app.Close()  // 确保资源清理
-
-crab.Use(crab.StartClose(
-    func() error {
-        cron.Start()  // 非阻塞
-        return nil
-    },
-    func() error {
-        return cron.Stop()
-    },
-))
-
-app.Run()  // 立即返回
-
-// 业务方主动阻塞
-select {}  // 按 Ctrl+C 触发优雅关闭
-```
-
-## 示例
-
-查看 [`examples/`](./examples/) 目录获取更多示例：
-- [`examples/basic/`](./examples/basic/) - 基础使用示例
-- [`examples/http_server/`](./examples/http_server/) - HTTP 服务器示例
-- [`examples/cron_task/`](./examples/cron_task/) - 定时任务示例
-- [`examples/job/`](./examples/job/) - 一次性 Job 示例
-
-## API 参考
-
-### 全局函数
-
-```go
-// 创建全局单例实例（使用 sync.Once 保证只创建一次）
-func New() Worker
-
-// 以下函数等同于 New().XXX()
-func Setup(...types.FuncErr) error
-func Use(...Handler)
-func Run() error
-func Close() error
-```
-
-### Handler 构造器
-
-```go
-// 创建只包含 Start 的 Handler
-func StartOnly(start types.FuncErr) Handler
-
-// 创建包含 Start 和 Close 的 Handler
-func StartClose(start, close types.FuncErr) Handler
-
-// 创建只包含 Close 的 Handler
-func CloseOnly(close types.FuncErr) Handler
-```
-
-### Worker 方法
-
-```go
-// 立即设置环境（可接受多个函数）
-Setup(...types.FuncErr) error
-
-// 注册资源生命周期（可接受多个 Handler）
-Use(...Handler)
-
-// 运行应用（触发所有 Start，异步监听信号）
-Run() error
-
-// 清理资源（推荐使用 defer app.Close()）
-Close() error
-```
-
-## 设计哲学
-
-### 1. 简洁至上
-
-- 只有 4 个核心方法，易学易用
-- 使用构造器函数而非复杂配置
-- 避免过度抽象和魔法
-
-### 2. 透明可控
-
-- 直接使用第三方库（redis.Client、gorm.DB）
-- 业务方完全控制资源初始化逻辑
-- 框架不隐藏实现细节
-
-### 3. 自动化管理 + 防御性编程
-
-- 框架自动处理信号监听
-- 接收到 SIGTERM/SIGINT 时自动清理资源
-- 推荐使用 `defer app.Close()` 作为安全保障（特别是一次性 Job）
-
-### 4. 错误上抛
-
-- 框架不输出日志
-- 所有错误返回给业务层
-- 业务层统一处理和记录
-
-### 5. 机制 > 策略
-
-- 框架提供生命周期管理机制
-- 业务方实现具体策略
-- 不过度封装常见场景
-
-## License
+## 📄 许可证
 
 MIT
