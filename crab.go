@@ -107,15 +107,15 @@ func WithLogger(l Logger) Option {
 	}
 }
 
-// Add 注册一个生命周期钩子
-func (a *App) Add(hook Hook) {
+// Add 注册一个或多个生命周期钩子
+func (a *App) Add(hooks ...Hook) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	// 如果应用已经启动，禁止添加新的钩子，以确保启动顺序的确定性
 	if a.state > stateNew {
 		panic("crab: cannot add hook after app has started")
 	}
-	a.hooks = append(a.hooks, hook)
+	a.hooks = append(a.hooks, hooks...)
 }
 
 // IsRunning 返回应用是否处于运行状态（Ready）
@@ -300,8 +300,8 @@ func (a *App) err(msg string, args ...interface{}) {
 // 全局默认实例
 var std = New()
 
-func Add(hook Hook) {
-	std.Add(hook)
+func Add(hooks ...Hook) {
+	std.Add(hooks...)
 }
 
 func Run() error {
