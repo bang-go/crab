@@ -304,7 +304,10 @@ func Add(hooks ...Hook) {
 	std.Add(hooks...)
 }
 
-func Run() error {
+func Run(hooks ...Hook) error {
+	if len(hooks) > 0 {
+		std.Add(hooks...)
+	}
 	return std.Run()
 }
 
@@ -312,7 +315,13 @@ func IsRunning() bool {
 	return std.IsRunning()
 }
 
-// SetLogger 为默认实例设置日志
+// SetLogger sets the logger for the default instance.
 func SetLogger(l Logger) {
 	std.logger = l
+}
+
+// Reset resets the default app instance.
+// This is primarily intended for testing purposes to allow multiple Run calls.
+func Reset() {
+	std = New()
 }

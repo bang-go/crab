@@ -121,6 +121,41 @@ http.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
 })
 ```
 
+### 高级用法：依赖注入与生命周期管理
+
+对于使用依赖注入框架（如 Google Wire, Uber Fx）的大型应用，Crab 推荐使用 **"生命周期注入模式" (Lifecycle Injection)**。
+
+这种模式让 Provider 自行注册关闭逻辑，彻底消除了繁琐的 `Cleanup` 返回值和中间结构体。
+
+**1. Provider 写法 (internal/provider):**
+
+```go
+// 只需要依赖 crab.Lifecycle 接口，不需要返回 cleanup 函数
+func NewResource(lc crab.Lifecycle) (*Resource, error) {
+    res := initResource(...) // 初始化资源
+    
+    // 一行代码，自动管理生命周期
+    lc.Append(crab.Close(res.Close))
+    
+    return res, nil
+}
+```
+
+**2. Main 写法 (cmd/main.go):**
+
+```go
+func main() {
+    // 注入层会自动创建一个 crab.Registry 并传递给所有 Provider
+    // initApp 返回收集满 Hooks 的 registry
+    app, registry, err := initApp() 
+
+    // 一键启动所有自动注册的组件
+    if err := crab.Run(registry.Hooks()...); err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
 ## ⚙️ 配置选项 (Options)
 
 | Option | 说明 | 默认值 |
