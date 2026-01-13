@@ -44,7 +44,8 @@ func main() {
 			fmt.Println("\n--- [Step 1] 开始加载配置 ---")
 			// 模拟加载配置
 			fakeViperData["db.dsn"] = "mysql://root:123456@localhost:3306/mydb"
-			fmt.Println("--- [Step 1] 配置加载完成 ---\n")
+			fmt.Println("--- [Step 1] 配置加载完成 ---")
+			fmt.Println()
 			return nil
 		},
 	})

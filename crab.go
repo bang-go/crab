@@ -315,6 +315,10 @@ func IsRunning() bool {
 	return std.IsRunning()
 }
 
+func Stop(ctx context.Context) error {
+	return std.Stop(ctx)
+}
+
 // SetLogger sets the logger for the default instance.
 func SetLogger(l Logger) {
 	std.logger = l
