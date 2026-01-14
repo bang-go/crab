@@ -43,7 +43,7 @@ func (r *Registry) Append(h Hook) {
 }
 
 // Hooks returns a copy of all registered hooks.
-// This is typically called in main.go to pass hooks to crab.Run().
+// This is typically called in main.go to pass hooks to app.Add(...).
 func (r *Registry) Hooks() []Hook {
 	r.mu.Lock()
 	defer r.mu.Unlock()

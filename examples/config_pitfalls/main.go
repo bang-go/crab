@@ -97,7 +97,7 @@ func main() {
 	})
 
 	// 运行应用
-	fmt.Println("\n=== 应用启动 (crab.Run) ===")
+	fmt.Println("\n=== 应用启动 (app.Run) ===")
 	if err := app.Run(); err != nil {
 		log.Fatal(err)
 	}

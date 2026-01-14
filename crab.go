@@ -32,15 +32,17 @@ type Option func(*App)
 
 // App 应用实例
 type App struct {
-	ctx             context.Context
-	cancel          context.CancelFunc
-	hooks           []Hook
-	shutdownTimeout time.Duration
-	startupTimeout  time.Duration // 启动超时
-	signals         []os.Signal
-	logger          Logger // 日志接口
-	mu              sync.Mutex
-	state           state
+	id                string // 应用唯一标识
+	ctx               context.Context
+	cancel            context.CancelFunc
+	hooks             []Hook
+	shutdownTimeout   time.Duration
+	startupTimeout    time.Duration // 启动超时
+	signals           []os.Signal
+	logger            Logger // 日志接口
+	mu                sync.Mutex
+	state             state
+	shutdownCallbacks []func() // shutdown回调函数
 }
 
 type state int
@@ -57,16 +59,22 @@ const (
 func New(opts ...Option) *App {
 	ctx, cancel := context.WithCancel(context.Background())
 	app := &App{
-		ctx:             ctx,
-		cancel:          cancel,
-		shutdownTimeout: 10 * time.Second,
-		startupTimeout:  0, // 默认无超时
-		signals:         []os.Signal{syscall.SIGTERM, syscall.SIGINT},
-		state:           stateNew,
+		id:                generateAppID(),
+		ctx:               ctx,
+		cancel:            cancel,
+		shutdownTimeout:   10 * time.Second,
+		startupTimeout:    0, // 默认无超时
+		signals:           []os.Signal{syscall.SIGTERM, syscall.SIGINT},
+		state:             stateNew,
+		shutdownCallbacks: make([]func(), 0),
 	}
 
 	for _, opt := range opts {
 		opt(app)
+	}
+
+	if err := globalShutdown.Register(app); err != nil {
+		app.err("Failed to register app to global shutdown manager", "error", err)
 	}
 
 	return app
@@ -174,11 +182,28 @@ func (a *App) Stop(ctx context.Context) error {
 	a.log("App stopping...")
 	a.cancel() // 取消主 Context
 
+	a.mu.Lock()
+	callbacks := append([]func(){}, a.shutdownCallbacks...)
+	a.mu.Unlock()
+
+	for _, callback := range callbacks {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					a.err("Shutdown callback panicked", "panic", r)
+				}
+			}()
+			callback()
+		}()
+	}
+
 	// 创建带超时的 context 用于停止流程
 	shutdownCtx, cancel := context.WithTimeout(ctx, a.shutdownTimeout)
 	defer cancel()
 
-	return a.stop(shutdownCtx)
+	err := a.stop(shutdownCtx)
+	_ = globalShutdown.Unregister(a.id)
+	return err
 }
 
 func (a *App) changeState(from, to state) bool {
@@ -287,45 +312,26 @@ func safeCall(ctx context.Context, fn types.Runner) (err error) {
 
 func (a *App) log(msg string, args ...interface{}) {
 	if a.logger != nil {
-		a.logger.Info(context.Background(), msg, args...)
+		a.logger.Info(a.ctx, msg, args...)
 	}
 }
 
 func (a *App) err(msg string, args ...interface{}) {
 	if a.logger != nil {
-		a.logger.Error(context.Background(), msg, args...)
+		a.logger.Error(a.ctx, msg, args...)
 	}
 }
 
-// 全局默认实例
-var std = New()
-
-func Add(hooks ...Hook) {
-	std.Add(hooks...)
+func (a *App) OnShutdown(fn func()) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.shutdownCallbacks = append(a.shutdownCallbacks, fn)
 }
 
-func Run(hooks ...Hook) error {
-	if len(hooks) > 0 {
-		std.Add(hooks...)
-	}
-	return std.Run()
+func (a *App) GetID() string {
+	return a.id
 }
 
-func IsRunning() bool {
-	return std.IsRunning()
-}
-
-func Stop(ctx context.Context) error {
-	return std.Stop(ctx)
-}
-
-// SetLogger sets the logger for the default instance.
-func SetLogger(l Logger) {
-	std.logger = l
-}
-
-// Reset resets the default app instance.
-// This is primarily intended for testing purposes to allow multiple Run calls.
-func Reset() {
-	std = New()
+func (a *App) Unregister() error {
+	return globalShutdown.Unregister(a.id)
 }

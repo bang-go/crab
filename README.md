@@ -16,8 +16,9 @@ Crab 是一个轻量级、企业级的 Go 应用生命周期管理框架。它�
     *   **Panic 隔离**：内置 Recover 机制，防止单组件崩溃导致进程退出。
     *   **状态保护**：应用启动后自动锁定 Hook 列表，防止运行时竞态。
 *   **云原生友好**：
-    *   **健康检测**：提供 `IsRunning()` 接口，用于 K8S Readiness Probe。
+    *   **健康检测**：提供 `app.IsRunning()` 接口，用于 K8S Readiness Probe。
     *   **优雅停机**：监听系统信号，支持关闭超时控制。
+    *   **全局 Shutdown**：所有 `crab.New()` 创建的 App 自动注册，可一键并行关闭。
 
 ## 📦 安装
 
@@ -108,17 +109,31 @@ app := crab.New(
 
 ### K8S 健康检测集成
 
-利用 `IsRunning()` 实现准确的 Readiness Probe：
+利用 `app.IsRunning()` 实现准确的 Readiness Probe：
 
 ```go
+app := crab.New()
 http.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
-    if crab.IsRunning() {
+    if app.IsRunning() {
         w.WriteHeader(200)
         w.Write([]byte("ok"))
     } else {
         w.WriteHeader(503)
     }
 })
+```
+
+### 全局 Shutdown
+
+`crab.New()` 创建的 App 会自动注册到全局 shutdown 管理器，你可以在任意位置触发统一关闭：
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
+
+if err := crab.Shutdown(ctx); err != nil {
+    log.Fatal(err)
+}
 ```
 
 ### 高级用法：依赖注入与生命周期管理
@@ -147,10 +162,16 @@ func NewResource(lc crab.Lifecycle) (*Resource, error) {
 func main() {
     // 注入层会自动创建一个 crab.Registry 并传递给所有 Provider
     // initApp 返回收集满 Hooks 的 registry
-    app, registry, err := initApp() 
+    _, registry, err := initApp()
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    app := crab.New()
+    app.Add(registry.Hooks()...)
 
     // 一键启动所有自动注册的组件
-    if err := crab.Run(registry.Hooks()...); err != nil {
+    if err := app.Run(); err != nil {
         log.Fatal(err)
     }
 }

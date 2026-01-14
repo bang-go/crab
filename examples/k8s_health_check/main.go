@@ -14,7 +14,9 @@ func main() {
 	// 模拟 ginx/grpcx 业务框架
 	// 在业务框架中，我们通常会注册一个 HTTP Server 来暴露业务接口和健康检测接口
 
-	crab.Add(crab.Hook{
+	app := crab.New()
+
+	app.Add(crab.Hook{
 		OnStart: func(ctx context.Context) error {
 			// 创建一个 ServeMux (模拟业务路由)
 			mux := http.NewServeMux()
@@ -32,10 +34,10 @@ func main() {
 			})
 
 			// 3. K8S Readiness Probe (就绪检测)
-			// 关键点：这里调用 crab.IsRunning() 来判断应用是否完全启动
-			// 只有当 crab.Run() 中的所有 OnStart 钩子都执行完毕，状态才会变为 Running
+			// 关键点：这里调用 app.IsRunning() 来判断应用是否完全启动
+			// 只有当 app.Run() 中的所有 OnStart 钩子都执行完毕，状态才会变为 Running
 			mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
-				if crab.IsRunning() {
+				if app.IsRunning() {
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte("ready"))
 				} else {
@@ -65,7 +67,7 @@ func main() {
 	})
 
 	// 运行应用
-	if err := crab.Run(); err != nil {
+	if err := app.Run(); err != nil {
 		log.Fatal(err)
 	}
 }

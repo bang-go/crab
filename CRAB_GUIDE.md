@@ -63,7 +63,7 @@ var ProviderSet = NewSet(
 
 ### 步骤 3: 应用启动 (Main)
 
-`main` 函数负责获取收集满钩子的 `Registry`，并将其交给 `crab.Run` 执行。
+`main` 函数负责获取收集满钩子的 `Registry`，并将其注入到 `App` 实例中执行。
 
 ```go
 func main() {
@@ -73,8 +73,11 @@ func main() {
         panic(err)
     }
 
+    app := crab.New()
+    app.Add(registry.Hooks()...)
+
     // 将 registry 收集的所有钩子一次性注入并运行
-    if err := crab.Run(registry.Hooks()...); err != nil {
+    if err := app.Run(); err != nil {
         panic(err)
     }
 }

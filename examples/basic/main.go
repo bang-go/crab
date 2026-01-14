@@ -9,22 +9,27 @@ import (
 )
 
 func main() {
-	// 方式 1: 使用默认实例
-	crab.Add(crab.Hook{
+	app := crab.New()
+
+	app.Add(crab.Hook{
 		OnStart: func(ctx context.Context) error {
 			fmt.Println("Setting up environment...")
 			return nil
 		},
 	})
 
-	crab.Add(crab.Hook{
+	app.Add(crab.Hook{
 		OnStart: func(ctx context.Context) error {
 			log.Println("应用启动")
 			return nil
 		},
 	})
 
-	if err := crab.Run(); err != nil {
+	app.OnShutdown(func() {
+		log.Println("应用正在关闭...")
+	})
+
+	if err := app.Run(); err != nil {
 		log.Printf("应用错误: %v", err)
 	}
 }
