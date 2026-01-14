@@ -150,7 +150,7 @@ func (a *App) Run() error {
 		return err
 	}
 
-	a.log("App started successfully", "cost", time.Since(startBegin))
+	a.log("App started successfully", "cost", formatCost(time.Since(startBegin)))
 	a.changeState(stateStarting, stateRunning)
 
 	// 2. 等待信号
@@ -255,7 +255,7 @@ func (a *App) start(ctx context.Context) error {
 			if err := safeCall(ctx, hook.OnStart); err != nil {
 				return fmt.Errorf("failed to start [%s]: %w", name, err)
 			}
-			a.log("Started component", "name", name, "cost", time.Since(start))
+			a.log("Started component", "name", name, "cost", formatCost(time.Since(start)))
 		}
 
 		a.mu.Lock()
@@ -288,7 +288,7 @@ func (a *App) stop(ctx context.Context) error {
 				a.err("Failed to stop component", "name", name, "error", err)
 				errs = append(errs, fmt.Errorf("[%s] stop failed: %w", name, err))
 			} else {
-				a.log("Stopped component", "name", name, "cost", time.Since(start))
+				a.log("Stopped component", "name", name, "cost", formatCost(time.Since(start)))
 			}
 		}
 	}

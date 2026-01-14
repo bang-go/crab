@@ -2,6 +2,8 @@ package crab
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/bang-go/crab/pkg/types"
 )
@@ -35,4 +37,29 @@ func CloseWithContext(fn func(context.Context) error) Hook {
 	return Hook{
 		OnStop: fn,
 	}
+}
+
+func formatCost(d time.Duration) string {
+	if d >= time.Second {
+		secs := d.Seconds()
+		if secs < 10 {
+			return fmt.Sprintf("%.3fs", secs)
+		}
+		if secs < 100 {
+			return fmt.Sprintf("%.2fs", secs)
+		}
+		return fmt.Sprintf("%.0fs", secs)
+	}
+
+	ms := d.Milliseconds()
+	if ms > 0 {
+		return fmt.Sprintf("%dms", ms)
+	}
+
+	us := d.Microseconds()
+	if us > 0 {
+		return fmt.Sprintf("%dµs", us)
+	}
+
+	return fmt.Sprintf("%dns", d.Nanoseconds())
 }
