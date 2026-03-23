@@ -94,11 +94,31 @@ func main() {
 *   **`crab.OnStart(fn)`**：仅定义启动逻辑。
 *   **`crab.OnStop(fn)`**：仅定义停止逻辑。
 
-## 4. 最佳实践原则
+### 应用状态与超时控制
+*   **`app.IsRunning()`**：应用是否已完成启动并进入运行态。
+*   **`app.IsStopping()`**：应用是否已进入关闭流程。
+*   **`crab.WithStartupTimeout(d)`**：为启动阶段设置统一 Deadline；`OnStart` 必须响应 `ctx.Done()`。
+*   **`crab.WithShutdownTimeout(d)`**：为整次 shutdown 设置总时限。
+*   **`crab.WithBestEffortShutdownTimeout(d)`**：当 shutdown 总时限耗尽后，为后续每个 Hook 提供有界的补偿清理窗口。
+
+## 4. 生命周期语义
+
+### 启动阶段
+*   Hook 按 `Add` / `Append` 顺序同步执行。
+*   只有成功完成 `OnStart` 的 Hook 才会进入回滚/关闭列表。
+*   若启动阶段失败，框架会对已成功启动的 Hook 按逆序执行回滚。
+
+### 关闭阶段
+*   Hook 按逆序执行 `OnStop`。
+*   `Stop()` 并发调用时，共享同一次关闭过程，不会重复执行同一批 `OnStop`。
+*   若 shutdown 总时限已耗尽，框架仍会继续遍历剩余 Hook，但每个 Hook 只会获得一个有限的补偿清理时限，而不是无限阻塞整个进程。
+
+## 5. 最佳实践原则
 
 1.  **就近注册**：谁创建资源，谁负责调用 `lc.Append` 注册销毁逻辑。
 2.  **避免返回 Cleanup**：函数签名应尽可能保持为 `func(...) (*T, error)`。
 3.  **命名规范**：在手动创建 `Hook` 时，务必提供 `Name` 字段，以便在日志中追踪各组件的执行耗时。
+4.  **响应 Context**：所有 `OnStart` / `OnStop` 都必须正确处理 `ctx.Done()`，否则启动 Deadline、优雅停机和补偿清理上限都会失效。
 
 ---
 *由 Gemini Agent 生成，作为项目通用架构规范。*

@@ -8,8 +8,8 @@ Crab 是一个轻量级、企业级的 Go 应用生命周期管理框架。它�
     *   **启动 (FIFO)**：严格按照 `Add` 顺序同步执行，确保配置 -> 数据库 -> 服务的依赖初始化顺序。
     *   **关闭 (LIFO)**：严格按照逆序关闭，确保上层服务先停止，底层资源后释放。
 *   **企业级可观测性**：
-    *   **结构化日志集成**：零适配器兼容 `slog` 及主流微服务框架日志接口，记录启动/停止耗时、组件名称等关键信息。
-    *   **启动超时控制**：支持设置全局启动超时 (`WithStartupTimeout`)，防止应用初始化死锁或挂起。
+    *   **结构化日志集成**：兼容 `slog` 风格和主流微服务框架日志接口，记录启动/停止耗时、组件名称等关键信息。
+    *   **启动 Deadline 控制**：支持设置全局启动 Deadline (`WithStartupTimeout`)，为遵循 `ctx.Done()` 的 Hook 提供统一超时约束。
     *   **组件耗时统计**：自动追踪并打印每个组件的启动/停止耗时，快速定位慢启动问题。
 *   **健壮性与安全**：
     *   **自动回滚**：启动失败自动逆序清理已申请的资源。
@@ -45,8 +45,9 @@ import (
 func main() {
 	// 1. 初始化应用 (支持 Options)
 	app := crab.New(
-		crab.WithStartupTimeout(5*time.Second),  // 启动超时
+		crab.WithStartupTimeout(5*time.Second),  // 启动 Deadline
 		crab.WithShutdownTimeout(10*time.Second), // 关闭超时
+		crab.WithBestEffortShutdownTimeout(500*time.Millisecond), // 超时后的补偿清理时限
 	)
 
 	// 2. 注册组件 (按依赖顺序)
@@ -181,18 +182,38 @@ func main() {
 
 | Option | 说明 | 默认值 |
 |--------|------|--------|
-| `WithStartupTimeout(d)` | 应用启动最大允许耗时，超时则回滚 | 0 (无超时) |
+| `WithStartupTimeout(d)` | 应用启动 Deadline；Hook 需响应 `ctx.Done()` 才能按时终止并回滚 | 0 (无超时) |
 | `WithShutdownTimeout(d)` | 优雅关闭最大等待时间 | 10s |
+| `WithBestEffortShutdownTimeout(d)` | 全局 shutdown deadline 到期后，单个 Hook 的补偿清理时限 | 1s |
 | `WithLogger(l)` | 注入日志接口，开启内部日志输出 | nil (静默) |
 | `WithContext(ctx)` | 设置应用根 Context | context.Background() |
 | `WithSignals(sigs...)` | 设置监听的系统信号 | SIGINT, SIGTERM |
+
+## ⏱️ 超时语义
+
+`crab` 的超时控制分为三层，它们的职责不同：
+
+1. `WithStartupTimeout(d)`
+   为启动阶段提供统一的 Deadline。
+   `OnStart` 必须正确响应 `ctx.Done()`，框架才能按时终止启动并回滚已成功启动的 Hook。
+
+2. `WithShutdownTimeout(d)`
+   为一次完整 shutdown 提供总时限。
+   在这个时限内，`crab` 会按 LIFO 顺序执行 `OnStop`。
+
+3. `WithBestEffortShutdownTimeout(d)`
+   当 shutdown 总时限已经耗尽时，`crab` 仍会继续遍历后续 Hook，但会为每个剩余 Hook 分配一个有界的补偿清理窗口，而不是无限阻塞。
+
+这三个超时不会替代 Hook 自身的上下文处理。最佳实践仍然是让所有 `OnStart` / `OnStop` 都把 `ctx.Done()` 作为第一等退出信号。
 
 ## 💡 最佳实践
 
 1.  **依赖顺序**：始终按照 `配置 -> 基础设施(DB/Redis) -> 业务服务 -> 对外接口` 的顺序注册 Hook。
 2.  **闭包取值**：在 `OnStart` 内部读取配置值，而不是在 `Add` 时读取，以确保配置已加载（延迟求值）。
 3.  **命名组件**：为每个 Hook 设置 `Name`，以便在日志中快速定位启动慢的组件。
-4.  **业务 Context**：Crab 仅管理应用生命周期，业务请求的 Context（TraceID 等）应由 Web/RPC 框架处理。
+4.  **响应 Context**：所有 `OnStart` / `OnStop` 都必须正确响应传入的 `ctx.Done()`，否则启动 Deadline 和优雅停机上限无法生效。
+5.  **超时补偿**：若需要在 shutdown deadline 超时后继续做有限补偿清理，可显式设置 `WithBestEffortShutdownTimeout`，不要依赖无限阻塞的 `OnStop`。
+6.  **业务 Context**：Crab 仅管理应用生命周期，业务请求的 Context（TraceID 等）应由 Web/RPC 框架处理。
 
 ## 🤝 贡献
 
